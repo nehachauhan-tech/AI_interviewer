@@ -20,62 +20,12 @@ import {
   Zap,
   Target,
 } from "lucide-react";
-
-/* ───────────────────── Navbar ───────────────────── */
-function Navbar() {
-  return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl"
-      role="navigation"
-      aria-label="Main navigation"
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <a href="#" className="flex items-center gap-2" aria-label="InterviewAI Home">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
-            <BrainCircuit className="h-5 w-5 text-white" aria-hidden="true" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">
-            Interview<span className="text-primary">AI</span>
-          </span>
-        </a>
-
-        <div className="hidden items-center gap-8 md:flex">
-          <a href="#features" className="text-sm font-medium text-muted transition-colors hover:text-foreground">
-            Features
-          </a>
-          <a href="#roles" className="text-sm font-medium text-muted transition-colors hover:text-foreground">
-            Interview Roles
-          </a>
-          <a href="#how-it-works" className="text-sm font-medium text-muted transition-colors hover:text-foreground">
-            How It Works
-          </a>
-          <a href="#testimonials" className="text-sm font-medium text-muted transition-colors hover:text-foreground">
-            Testimonials
-          </a>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a
-            href="#"
-            className="hidden rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-alt sm:inline-flex"
-          >
-            Sign In
-          </a>
-          <a
-            href="#"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/30 hover:brightness-110"
-          >
-            Get Started
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
-        </div>
-      </div>
-    </nav>
-  );
-}
+import { createClient } from "@/lib/supabase/server";
+import LandingNavbar from "./LandingNavbar";
 
 /* ───────────────────── Hero ───────────────────── */
-function Hero() {
+function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const ctaHref = isLoggedIn ? "/home" : "/auth";
   return (
     <section className="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-28">
       {/* Background gradient orbs */}
@@ -111,10 +61,10 @@ function Hero() {
           {/* CTA buttons */}
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="#"
+              href={ctaHref}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-8 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:brightness-110 sm:w-auto"
             >
-              Start Free Interview
+              {isLoggedIn ? "Go to Dashboard" : "Start Free Interview"}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
             <a
@@ -130,11 +80,7 @@ function Hero() {
           <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className="h-4 w-4 fill-amber-400 text-amber-400"
-                  aria-hidden="true"
-                />
+                <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
               ))}
               <span className="ml-2 text-sm font-medium text-muted">4.9/5 rating</span>
             </div>
@@ -162,7 +108,6 @@ function Hero() {
             {/* Interview conversation preview */}
             <div className="p-6 sm:p-8">
               <div className="space-y-4">
-                {/* AI interviewer message */}
                 <div className="flex gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent">
                     <BrainCircuit className="h-4 w-4 text-white" aria-hidden="true" />
@@ -176,7 +121,6 @@ function Hero() {
                     </p>
                   </div>
                 </div>
-                {/* User response */}
                 <div className="flex justify-end gap-3">
                   <div className="rounded-2xl rounded-tr-sm bg-gradient-to-r from-primary/10 to-accent/10 px-4 py-3">
                     <p className="text-sm text-foreground">
@@ -189,7 +133,6 @@ function Hero() {
                     <UserCheck className="h-4 w-4 text-muted" aria-hidden="true" />
                   </div>
                 </div>
-                {/* AI feedback */}
                 <div className="flex gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent">
                     <BrainCircuit className="h-4 w-4 text-white" aria-hidden="true" />
@@ -215,7 +158,6 @@ function Hero() {
               </div>
             </div>
           </div>
-          {/* Glow effect behind the card */}
           <div
             className="pointer-events-none absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-r from-primary/20 via-accent/10 to-primary/20 blur-2xl"
             aria-hidden="true"
@@ -270,7 +212,6 @@ function Features() {
   return (
     <section id="features" className="relative py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold tracking-wide text-primary">WHY INTERVIEWAI</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
@@ -281,8 +222,6 @@ function Features() {
             to improve with every session.
           </p>
         </div>
-
-        {/* Feature grid */}
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
             <div
@@ -351,7 +290,8 @@ const roles = [
   },
 ];
 
-function InterviewRoles() {
+function InterviewRoles({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const ctaHref = isLoggedIn ? "/home" : "/auth";
   return (
     <section id="roles" className="relative bg-surface py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -365,26 +305,21 @@ function InterviewRoles() {
             experience levels.
           </p>
         </div>
-
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {roles.map((role) => (
-            <div
+            <a
               key={role.title}
-              className="group cursor-pointer rounded-2xl border border-border bg-background p-6 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+              href={ctaHref}
+              className="group rounded-2xl border border-border bg-background p-6 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
             >
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${role.gradient}`}
-              >
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${role.gradient}`}>
                 <role.icon className="h-6 w-6 text-white" aria-hidden="true" />
               </div>
               <h3 className="mt-4 text-lg font-semibold">{role.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{role.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {role.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-surface-alt px-3 py-1 text-xs font-medium text-muted"
-                  >
+                  <span key={tag} className="rounded-full bg-surface-alt px-3 py-1 text-xs font-medium text-muted">
                     {tag}
                   </span>
                 ))}
@@ -392,7 +327,7 @@ function InterviewRoles() {
               <div className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
                 Start Interview <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </div>
@@ -405,26 +340,22 @@ const steps = [
   {
     step: "01",
     title: "Choose Your Role",
-    description:
-      "Select the job role you're preparing for — Software Developer, HR, Tech Lead, Intern, and more.",
+    description: "Select the job role you're preparing for — Software Developer, HR, Tech Lead, Intern, and more.",
   },
   {
     step: "02",
     title: "Start the Interview",
-    description:
-      "Our AI interviewer begins with realistic questions tailored to the role. Answer via text or voice.",
+    description: "Our AI interviewer begins with realistic questions tailored to the role. Answer via text or voice.",
   },
   {
     step: "03",
     title: "Get Real-Time Guidance",
-    description:
-      "If you're stuck or heading the wrong way, the AI gently guides you with hints and tips.",
+    description: "If you're stuck or heading the wrong way, the AI gently guides you with hints and tips.",
   },
   {
     step: "04",
     title: "Review Your Feedback",
-    description:
-      "After the session, get a detailed performance report with strengths, areas to improve, and action items.",
+    description: "After the session, get a detailed performance report with strengths, areas to improve, and action items.",
   },
 ];
 
@@ -438,11 +369,9 @@ function HowItWorks() {
             Your Interview Prep in 4 Simple Steps
           </h2>
         </div>
-
         <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((item, index) => (
             <div key={item.step} className="relative text-center">
-              {/* Connector line (hidden on last item and on mobile) */}
               {index < steps.length - 1 && (
                 <div
                   className="pointer-events-none absolute top-8 left-[60%] hidden h-px w-[80%] bg-gradient-to-r from-primary/30 to-transparent lg:block"
@@ -500,25 +429,15 @@ function Testimonials() {
             Hear from people who improved their interview skills and landed their dream jobs.
           </p>
         </div>
-
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((item) => (
-            <div
-              key={item.name}
-              className="rounded-2xl border border-border bg-background p-6"
-            >
+            <div key={item.name} className="rounded-2xl border border-border bg-background p-6">
               <div className="flex items-center gap-1">
                 {[...Array(item.rating)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-amber-400 text-amber-400"
-                    aria-hidden="true"
-                  />
+                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
                 ))}
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-muted">
-                &ldquo;{item.content}&rdquo;
-              </p>
+              <p className="mt-4 text-sm leading-relaxed text-muted">&ldquo;{item.content}&rdquo;</p>
               <div className="mt-6 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-bold text-white">
                   {item.name[0]}
@@ -551,9 +470,7 @@ function Stats() {
         <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
-              <p className="text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
-                {stat.value}
-              </p>
+              <p className="text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">{stat.value}</p>
               <p className="mt-1 text-sm font-medium text-muted">{stat.label}</p>
             </div>
           ))}
@@ -564,21 +481,14 @@ function Stats() {
 }
 
 /* ───────────────────── CTA ───────────────────── */
-function CTA() {
+function CTA({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const ctaHref = isLoggedIn ? "/home" : "/auth";
   return (
     <section className="relative py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-accent to-primary-dark px-6 py-16 text-center sm:px-16 sm:py-24">
-          {/* Background effects */}
-          <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_60%)]"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.08),transparent_50%)]"
-            aria-hidden="true"
-          />
-
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_60%)]" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.08),transparent_50%)]" aria-hidden="true" />
           <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Ready to Nail Your Next Interview?
           </h2>
@@ -588,43 +498,26 @@ function CTA() {
           </p>
           <div className="relative mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="#"
+              href={ctaHref}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-8 text-base font-semibold text-primary shadow-lg transition-all hover:bg-white/90 hover:shadow-xl sm:w-auto"
             >
-              Start Free Interview
+              {isLoggedIn ? "Go to Dashboard" : "Start Free Interview"}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
             <a
-              href="#"
+              href="#roles"
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/30 px-8 text-base font-semibold text-white transition-all hover:border-white/50 hover:bg-white/10 sm:w-auto"
             >
               View All Roles
             </a>
           </div>
-
-          {/* Trust badges */}
           <div className="relative mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2
-                className="h-4 w-4 text-white/70"
-                aria-hidden="true"
-              />
-              <span className="text-sm text-white/70">Free to start</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2
-                className="h-4 w-4 text-white/70"
-                aria-hidden="true"
-              />
-              <span className="text-sm text-white/70">No credit card needed</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2
-                className="h-4 w-4 text-white/70"
-                aria-hidden="true"
-              />
-              <span className="text-sm text-white/70">Instant access</span>
-            </div>
+            {["Free to start", "No credit card needed", "Instant access"].map((t) => (
+              <div key={t} className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-white/70" aria-hidden="true" />
+                <span className="text-sm text-white/70">{t}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -638,9 +531,8 @@ function Footer() {
     <footer className="border-t border-border bg-surface py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <a href="#" className="flex items-center gap-2" aria-label="InterviewAI Home">
+            <a href="/" className="flex items-center gap-2" aria-label="InterviewAI Home">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
                 <BrainCircuit className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
@@ -653,30 +545,22 @@ function Footer() {
               interview with confidence.
             </p>
           </div>
-
-          {/* Links */}
           <div>
             <h4 className="text-sm font-semibold">Product</h4>
             <ul className="mt-3 space-y-2">
-              {["Features", "Interview Roles", "Pricing", "FAQ"].map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-muted transition-colors hover:text-foreground">
-                    {link}
-                  </a>
-                </li>
-              ))}
+              <li><a href="#features"    className="text-sm text-muted transition-colors hover:text-foreground">Features</a></li>
+              <li><a href="#roles"       className="text-sm text-muted transition-colors hover:text-foreground">Interview Roles</a></li>
+              <li><a href="#how-it-works" className="text-sm text-muted transition-colors hover:text-foreground">How It Works</a></li>
+              <li><a href="#testimonials" className="text-sm text-muted transition-colors hover:text-foreground">Testimonials</a></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold">Resources</h4>
+            <h4 className="text-sm font-semibold">App</h4>
             <ul className="mt-3 space-y-2">
-              {["Blog", "Interview Tips", "Career Guide", "Community"].map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-muted transition-colors hover:text-foreground">
-                    {link}
-                  </a>
-                </li>
-              ))}
+              <li><a href="/home"      className="text-sm text-muted transition-colors hover:text-foreground">Start Interview</a></li>
+              <li><a href="/dashboard" className="text-sm text-muted transition-colors hover:text-foreground">Dashboard</a></li>
+              <li><a href="/profile"   className="text-sm text-muted transition-colors hover:text-foreground">Profile</a></li>
+              <li><a href="/auth"      className="text-sm text-muted transition-colors hover:text-foreground">Sign In / Sign Up</a></li>
             </ul>
           </div>
           <div>
@@ -684,15 +568,12 @@ function Footer() {
             <ul className="mt-3 space-y-2">
               {["About Us", "Contact", "Privacy Policy", "Terms of Service"].map((link) => (
                 <li key={link}>
-                  <a href="#" className="text-sm text-muted transition-colors hover:text-foreground">
-                    {link}
-                  </a>
+                  <a href="#" className="text-sm text-muted transition-colors hover:text-foreground">{link}</a>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-
         <div className="mt-10 border-t border-border pt-8 text-center">
           <p className="text-sm text-muted">
             &copy; {new Date().getFullYear()} InterviewAI. All rights reserved.
@@ -703,19 +584,51 @@ function Footer() {
   );
 }
 
-/* ───────────────────── Page ───────────────────── */
-export default function Home() {
+/* ───────────────────── Page (Server Component) ───────────────────── */
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const isLoggedIn = !!user;
+
+  // Fetch profile for avatar + name if logged in
+  let userInitials = "";
+  let userEmail = user?.email ?? "";
+  let avatarUrl: string | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    const name = (profile as { full_name?: string | null } | null)?.full_name ?? user.email ?? "";
+    userInitials = name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+    avatarUrl = (profile as { avatar_url?: string | null } | null)?.avatar_url ?? null;
+  }
+
   return (
     <>
-      <Navbar />
+      <LandingNavbar
+        isLoggedIn={isLoggedIn}
+        userInitials={userInitials}
+        userEmail={userEmail}
+        avatarUrl={avatarUrl}
+      />
       <main>
-        <Hero />
+        <Hero isLoggedIn={isLoggedIn} />
         <Stats />
         <Features />
-        <InterviewRoles />
+        <InterviewRoles isLoggedIn={isLoggedIn} />
         <HowItWorks />
         <Testimonials />
-        <CTA />
+        <CTA isLoggedIn={isLoggedIn} />
       </main>
       <Footer />
     </>
