@@ -426,23 +426,43 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
     async function connect() {
       try {
         setConnectionStatus("connecting");
+
+        // 1. Fetch ephemeral token
+        console.log("[Gemini] Fetching ephemeral token...");
         const tokenRes = await fetch("/api/interview/token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: session.id }),
         });
-        if (!tokenRes.ok) throw new Error("Failed to get token");
+
+        if (!tokenRes.ok) {
+          const errorBody = await tokenRes.text();
+          console.error("[Gemini] Token fetch failed:", tokenRes.status, errorBody);
+          throw new Error(`Token fetch failed: ${tokenRes.status}`);
+        }
+
         const { token } = await tokenRes.json();
+        console.log("[Gemini] Token received:", token ? `${token.slice(0, 30)}...` : "EMPTY");
+        if (!token) throw new Error("Empty token received");
         if (cancelled) return;
 
+        // 2. Create Gemini client with v1alpha for ephemeral tokens
         const { GoogleGenAI, Modality } = await import("@google/genai");
-        const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: "v1alpha" } });
 
+        const modelName = process.env.NEXT_PUBLIC_GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview";
+        console.log("[Gemini] Connecting to model:", modelName);
+
+        const ai = new GoogleGenAI({
+          apiKey: token,
+          httpOptions: { apiVersion: "v1alpha" },
+        });
+
+        // 3. Connect to Gemini Live
         const liveSession = await ai.live.connect({
-          model: `models/${process.env.NEXT_PUBLIC_GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview"}`,
+          model: modelName,
           config: {
             responseModalities: [Modality.AUDIO],
-            systemInstruction: { parts: [{ text: systemInstruction() }] },
+            systemInstruction: systemInstruction(),
             speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
             },
@@ -450,30 +470,39 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
             inputAudioTranscription: {},
           },
           callbacks: {
-            onopen: () => { if (!cancelled) setConnectionStatus("connected"); },
+            onopen: () => {
+              console.log("[Gemini] WebSocket OPEN");
+              if (!cancelled) setConnectionStatus("connected");
+            },
             onmessage: (msg: import("@google/genai").LiveServerMessage) => {
+              console.log("[Gemini] Message received:", JSON.stringify(msg).slice(0, 200));
               if (!cancelled) handleServerMessage(msg);
             },
             onerror: (e: ErrorEvent) => {
-              console.error("Gemini Live error:", e.message);
+              console.error("[Gemini] WebSocket ERROR:", e);
+              console.error("[Gemini] Error details — message:", e.message, "type:", e.type);
               if (!cancelled) setConnectionStatus("error");
             },
-            onclose: () => { if (!cancelled) setConnectionStatus("disconnected"); },
+            onclose: (e: CloseEvent) => {
+              console.log("[Gemini] WebSocket CLOSED — code:", e.code, "reason:", e.reason, "wasClean:", e.wasClean);
+              if (!cancelled) setConnectionStatus("disconnected");
+            },
           },
         });
 
+        console.log("[Gemini] Session established, sending opening prompt...");
         if (cancelled) { liveSession.close(); return; }
         sessionRef.current = liveSession;
 
+        // 4. Send opening prompt to get the interviewer to greet
         liveSession.sendClientContent({
-          turns: [{
-            role: "user",
-            parts: [{ text: "The interview is starting now. Please greet me and ask me to introduce myself." }],
-          }],
+          turns: "The interview is starting now. Please greet me and ask me to introduce myself.",
         });
         setAIState("thinking");
+        console.log("[Gemini] Opening prompt sent");
+
       } catch (err) {
-        console.error("Failed to connect:", err);
+        console.error("[Gemini] Connection failed:", err);
         if (!cancelled) setConnectionStatus("error");
       }
     }
@@ -573,7 +602,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
     setAIState("thinking");
     await saveMessage("user", text);
     playerRef.current.stop();
-    sessionRef.current.sendClientContent({ turns: [{ role: "user", parts: [{ text }] }] });
+    sessionRef.current.sendClientContent({ turns: text });
   }
 
   // ── Toggle mic ──

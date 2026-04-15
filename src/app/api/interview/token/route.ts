@@ -48,20 +48,32 @@ export async function POST(request: Request) {
     );
   }
 
-  const client = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_GEMINI_API_KEY!,
-  });
+  try {
+    const client = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_GEMINI_API_KEY!,
+    });
 
-  const token = await client.authTokens.create({
-    config: {
-      uses: 1,
-      // Token allows sending messages for up to 30 minutes
-      expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      // Must start the session within 2 minutes of token creation
-      newSessionExpireTime: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
-      httpOptions: { apiVersion: "v1alpha" },
-    },
-  });
+    console.log("[Token] Creating ephemeral token...");
 
-  return NextResponse.json({ token: token.name });
+    const token = await client.authTokens.create({
+      config: {
+        uses: 1,
+        expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        newSessionExpireTime: new Date(
+          Date.now() + 2 * 60 * 1000
+        ).toISOString(),
+        httpOptions: { apiVersion: "v1alpha" },
+      },
+    });
+
+    console.log("[Token] Token created:", token.name ? `${token.name.slice(0, 30)}...` : "EMPTY");
+
+    return NextResponse.json({ token: token.name });
+  } catch (err) {
+    console.error("[Token] Failed to create ephemeral token:", err);
+    return NextResponse.json(
+      { error: "Failed to create token", details: String(err) },
+      { status: 500 }
+    );
+  }
 }
