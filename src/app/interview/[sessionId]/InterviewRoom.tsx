@@ -436,7 +436,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
         if (cancelled) return;
 
         const { GoogleGenAI, Modality } = await import("@google/genai");
-        const ai = new GoogleGenAI({ apiKey: token });
+        const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: "v1alpha" } });
 
         const liveSession = await ai.live.connect({
           model: `models/${process.env.NEXT_PUBLIC_GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview"}`,
