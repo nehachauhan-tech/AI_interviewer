@@ -494,12 +494,13 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
         if (cancelled) { liveSession.close(); return; }
         sessionRef.current = liveSession;
 
-        // 4. Send opening prompt to get the interviewer to greet
-        liveSession.sendClientContent({
-          turns: "The interview is starting now. Please greet me and ask me to introduce myself.",
+        // 4. Send opening prompt via sendRealtimeInput (Gemini 3.1 only supports
+        // sendClientContent for initial history seeding, not mid-conversation)
+        liveSession.sendRealtimeInput({
+          text: "The interview is starting now. Please greet me and ask me to introduce myself.",
         });
         setAIState("thinking");
-        console.log("[Gemini] Opening prompt sent");
+        console.log("[Gemini] Opening prompt sent via sendRealtimeInput");
 
       } catch (err) {
         console.error("[Gemini] Connection failed:", err);
@@ -602,7 +603,8 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
     setAIState("thinking");
     await saveMessage("user", text);
     playerRef.current.stop();
-    sessionRef.current.sendClientContent({ turns: text });
+    // Gemini 3.1: must use sendRealtimeInput for text (sendClientContent is initial-history only)
+    sessionRef.current.sendRealtimeInput({ text });
   }
 
   // ── Toggle mic ──
