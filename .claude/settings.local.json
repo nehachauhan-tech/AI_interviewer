@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python --version)",
+      "Bash(python3 --version)",
+      "Bash(python \"C:/Users/Neha/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"AI interviewer mock interview platform tech HR professional modern\" --design-system -p \"AI Interviewer\" -f markdown)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(npx create-next-app@latest temp-project --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(shopt -s dotglob)",
+      "Bash(mv temp-project/* .)",
+      "Bash(mv temp-project/.* .)",
+      "Bash(rm -rf temp-project)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx add-mcp *)",
+      "mcp__gemini-api-docs-mcp:*",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(node -e \"const g = require\\('@google/genai'\\); console.log\\(Object.keys\\(g\\).join\\(', '\\)\\)\")",
+      "Bash(python *)"
+    ]
+  }
+}
