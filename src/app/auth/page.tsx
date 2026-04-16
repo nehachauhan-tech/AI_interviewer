@@ -99,7 +99,7 @@ export default function AuthPage() {
             <BrainCircuit className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight text-white">
-            Hire<span className="text-indigo-400">-check</span>
+            AI <span className="text-indigo-400">Interviewer</span>
           </span>
         </div>
 
@@ -161,7 +161,7 @@ export default function AuthPage() {
               <BrainCircuit className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-white">
-              Hire<span className="text-indigo-400">-check</span>
+              AI <span className="text-indigo-400">Interviewer</span>
             </span>
           </div>
 

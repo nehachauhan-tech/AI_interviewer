@@ -20,7 +20,11 @@
       "mcp__gemini-api-docs-mcp:*",
       "WebFetch(domain:ai.google.dev)",
       "Bash(node -e \"const g = require\\('@google/genai'\\); console.log\\(Object.keys\\(g\\).join\\(', '\\)\\)\")",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Read(//c/Users/Neha/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python scripts/search.py \"AI interview SaaS dark modern professional\" --design-system -p \"AI Interviewer\" -f markdown)",
+      "Bash(python3 scripts/search.py \"AI interview SaaS dark modern professional\" --design-system -p \"AI Interviewer\" -f markdown)",
+      "Bash(npm list *)"
     ]
   }
 }

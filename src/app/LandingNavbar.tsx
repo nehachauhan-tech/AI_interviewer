@@ -57,7 +57,7 @@ export default function LandingNavbar({ isLoggedIn, userInitials, userEmail, ava
             /* ── Logged-in state ── */
             <div className="flex items-center gap-2">
               <a
-                href="/home"
+                href="/dashboard"
                 className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:brightness-110"
               >
                 <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
@@ -100,6 +100,15 @@ export default function LandingNavbar({ isLoggedIn, userInitials, userEmail, ava
                         role="menuitem"
                       >
                         <LayoutDashboard className="h-4 w-4 text-muted" />
+                        Start Interview
+                      </a>
+                      <a
+                        href="/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-surface-alt transition-colors"
+                        role="menuitem"
+                      >
+                        <LayoutDashboard className="h-4 w-4 text-muted" />
                         Dashboard
                       </a>
                       <a
@@ -110,15 +119,6 @@ export default function LandingNavbar({ isLoggedIn, userInitials, userEmail, ava
                       >
                         <UserIcon className="h-4 w-4 text-muted" />
                         Profile
-                      </a>
-                      <a
-                        href="/dashboard"
-                        onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-surface-alt transition-colors"
-                        role="menuitem"
-                      >
-                        <LayoutDashboard className="h-4 w-4 text-muted" />
-                        My Progress
                       </a>
                     </div>
                     <div className="border-t border-border p-1.5">

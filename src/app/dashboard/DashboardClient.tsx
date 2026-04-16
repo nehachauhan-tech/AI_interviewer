@@ -151,7 +151,7 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
               <BrainCircuit className="h-4 w-4 text-white" />
             </div>
             <span className="text-base font-bold">
-              Hire<span className="text-indigo-400">-check</span>
+              AI <span className="text-indigo-400">Interviewer</span>
             </span>
           </a>
           <div className="flex items-center gap-2">
