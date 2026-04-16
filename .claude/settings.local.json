@@ -24,7 +24,10 @@
       "Read(//c/Users/Neha/.claude/skills/ui-ux-pro-max/**)",
       "Bash(python scripts/search.py \"AI interview SaaS dark modern professional\" --design-system -p \"AI Interviewer\" -f markdown)",
       "Bash(python3 scripts/search.py \"AI interview SaaS dark modern professional\" --design-system -p \"AI Interviewer\" -f markdown)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(node scripts/generate-interviewer-images.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(node scripts/generate-interviewer-images.mjs --force)"
     ]
   }
 }

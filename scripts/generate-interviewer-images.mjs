@@ -1,8 +1,9 @@
 /**
- * Generates 2K (2048) portrait images for each AI interviewer
- * using Gemini gemini-3.1-flash-image-preview and saves to public/interviewers/
+ * Generates 2K portrait ID-card images for the real AI interviewers
+ * using gemini-3.1-flash-image-preview and saves to public/interviewers/
  *
  * Usage:  node scripts/generate-interviewer-images.mjs
+ * Pass --force to regenerate even if file already exists
  */
 
 import fs from "fs";
@@ -10,133 +11,152 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
+const ROOT      = path.resolve(__dirname, "..");
+const FORCE     = process.argv.includes("--force");
 
 /* ── Load .env.local ─────────────────────────────────────────── */
-const envPath = path.join(ROOT, ".env.local");
-const envLines = fs.readFileSync(envPath, "utf8").split("\n");
+const envLines = fs.readFileSync(path.join(ROOT, ".env.local"), "utf8").split("\n");
 const env = {};
 for (const line of envLines) {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith("#")) continue;
-  const eqIdx = trimmed.indexOf("=");
-  if (eqIdx === -1) continue;
-  env[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+  const t = line.trim();
+  if (!t || t.startsWith("#")) continue;
+  const eq = t.indexOf("=");
+  if (eq === -1) continue;
+  env[t.slice(0, eq).trim()] = t.slice(eq + 1).trim();
 }
 
 const API_KEY = env["GOOGLE_GEMINI_API_KEY"];
-if (!API_KEY) {
-  console.error("ERROR: GOOGLE_GEMINI_API_KEY not found in .env.local");
-  process.exit(1);
-}
+if (!API_KEY) { console.error("ERROR: GOOGLE_GEMINI_API_KEY missing"); process.exit(1); }
 
-/* ── Model + output config ───────────────────────────────────── */
 const MODEL   = "gemini-3.1-flash-image-preview";
 const OUT_DIR = path.join(ROOT, "public", "interviewers");
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-/* ── Interviewer definitions ─────────────────────────────────── */
+/* ── Real interviewer data from Supabase DB ──────────────────── */
 const INTERVIEWERS = [
   {
-    slug: "arjun-sharma",
-    name: "Arjun Sharma",
-    title: "Senior Software Engineer",
-    company: "Google",
-    personality: "Strict",
-    prompt: `Ultra-realistic professional corporate headshot portrait of a male Indian software
-      engineer named Arjun Sharma, early 30s, wearing a crisp dark navy business shirt,
-      confident serious expression, short neat black hair, clean-shaven, sharp intelligent eyes,
-      neutral light grey studio background with subtle gradient, professional studio lighting
-      with soft key light and fill light, shallow depth of field, photorealistic, highly detailed,
-      no text, no watermark, centered head-and-shoulders composition.`,
-  },
-  {
-    slug: "priya-mehta",
-    name: "Priya Mehta",
+    id: "cf20f0e0-7c37-47fe-a73f-520eac9cab20",
+    slug: "aria-singh",
+    name: "Aria Singh",
     title: "HR Manager",
-    company: "Infosys",
+    company: "TechCorp",
     personality: "Friendly",
-    prompt: `Ultra-realistic professional corporate headshot portrait of a female Indian HR manager
-      named Priya Mehta, late 20s, warm friendly smile, wearing a professional light blue formal
-      blazer over white blouse, neat long black hair tied back, approachable confident expression,
-      subtle makeup, soft warm studio background with off-white gradient, professional three-point
-      studio lighting, photorealistic, highly detailed, no text, no watermark,
-      centered head-and-shoulders composition.`,
+    experience: "8 years",
+    specialties: ["Behavioral", "Culture Fit", "Soft Skills", "Salary Negotiation"],
+    bio: "Focuses on culture-fit, behavioural questions, and soft skills.",
+    appearance: `warm and approachable Indian woman in her early 30s, professional light blue blazer
+      over white blouse, neat long black hair, friendly warm smile, subtle makeup`,
   },
   {
-    slug: "rahul-verma",
-    name: "Rahul Verma",
+    id: "b202fc41-6918-4454-9e88-43da0a5d80ec",
+    slug: "marcus-chen",
+    name: "Marcus Chen",
+    title: "Senior Software Engineer",
+    company: "FAANG",
+    personality: "Strict",
+    experience: "12 years",
+    specialties: ["DSA", "Problem Solving", "Complexity Analysis", "Coding"],
+    bio: "Asks deep algorithm and data-structure questions with a rigorous style.",
+    appearance: `serious and focused East Asian man in his mid 30s, dark navy technical shirt,
+      short neat black hair, sharp intelligent expression, rectangular black-rimmed glasses`,
+  },
+  {
+    id: "f56eb65a-216e-4907-b60e-c7010baf6e03",
+    slug: "priya-kapoor",
+    name: "Priya Kapoor",
     title: "Tech Lead",
-    company: "Microsoft",
+    company: "Unicorn Startup",
     personality: "Analytical",
-    prompt: `Ultra-realistic professional corporate headshot portrait of a male Indian tech lead
-      named Rahul Verma, mid 30s, wearing rectangular black-rimmed glasses and dark charcoal grey
-      formal shirt, thoughtful analytical expression, medium length neatly styled black hair,
-      slight beard, calm intelligent demeanor, clean dark gradient studio background,
-      professional studio lighting with cool tone highlights, photorealistic, highly detailed,
-      no text, no watermark, centered head-and-shoulders composition.`,
+    experience: "10 years",
+    specialties: ["System Design", "Architecture", "Leadership", "Scalability"],
+    bio: "Combines architecture questions with team-dynamics and leadership scenarios.",
+    appearance: `thoughtful and composed Indian woman in her early 30s, dark charcoal blazer,
+      long wavy black hair, calm analytical expression, confident posture`,
   },
   {
-    slug: "sara-chen",
-    name: "Sara Chen",
-    title: "Frontend Engineer",
-    company: "Meta",
-    personality: "Encouraging",
-    prompt: `Ultra-realistic professional corporate headshot portrait of a female East Asian frontend
-      engineer named Sara Chen, late 20s, wearing a stylish dark turtleneck sweater,
-      warm encouraging smile, straight black hair shoulder-length with side part,
-      bright expressive eyes, modern tech aesthetic, clean minimal light grey studio background,
-      professional natural studio lighting, photorealistic, highly detailed,
-      no text, no watermark, centered head-and-shoulders composition.`,
-  },
-  {
-    slug: "david-okafor",
-    name: "David Okafor",
-    title: "Engineering Manager",
-    company: "Amazon",
-    personality: "Direct",
-    prompt: `Ultra-realistic professional corporate headshot portrait of a male African engineering
-      manager named David Okafor, late 30s, wearing a sharp well-fitted white formal shirt
-      with dark tie, confident direct expression, short well-groomed hair,
-      strong professional presence, clean neutral warm-toned studio background,
-      professional corporate studio lighting, photorealistic, highly detailed,
-      no text, no watermark, centered head-and-shoulders composition.`,
-  },
-  {
-    slug: "neha-gupta",
-    name: "Neha Gupta",
-    title: "Data Scientist",
-    company: "Flipkart",
+    id: "ddceb844-2557-4289-81e4-6917a047e2b4",
+    slug: "leo-russo",
+    name: "Leo Russo",
+    title: "Full-Stack Engineer",
+    company: "Product Studio",
     personality: "Relaxed",
-    prompt: `Ultra-realistic professional corporate headshot portrait of a female Indian data scientist
-      named Neha Gupta, early 30s, wearing a casual-professional dark burgundy blazer,
-      relaxed calm smile, long wavy black hair, intelligent approachable expression,
-      subtle modern jewelry, warm neutral studio background with soft gradient,
-      professional natural studio lighting, photorealistic, highly detailed,
-      no text, no watermark, centered head-and-shoulders composition.`,
+    experience: "7 years",
+    specialties: ["React", "Node.js", "Databases", "Full Stack", "APIs"],
+    bio: "Covers frontend, backend, databases and deployment in a conversational style.",
+    appearance: `casual and friendly Italian-looking man in his late 20s, open-collar dark shirt,
+      slightly messy brown hair, easy relaxed smile, modern creative-agency vibe`,
+  },
+  {
+    id: "ff445d03-62d8-4a75-ab79-48fa512b7f59",
+    slug: "zara-ahmed",
+    name: "Zara Ahmed",
+    title: "Campus Recruiter",
+    company: "MNC",
+    personality: "Encouraging",
+    experience: "5 years",
+    specialties: ["Basics", "Campus Prep", "Entry Level", "First Job"],
+    bio: "Helps freshers and interns prepare for their very first job interview.",
+    appearance: `bright and encouraging South Asian woman in her late 20s, colourful violet blazer,
+      modern hijab or open hair, warm encouraging smile, youthful energetic expression`,
+  },
+  {
+    id: "5a9a8fda-f446-43b3-968c-053b3971f7ee",
+    slug: "victor-nwosu",
+    name: "Victor Nwosu",
+    title: "Engineering Manager",
+    company: "Scale-up",
+    personality: "Direct",
+    experience: "14 years",
+    specialties: ["System Design", "Leadership", "Team Management", "Estimation"],
+    bio: "Evaluates both technical depth and people-management ability.",
+    appearance: `confident and authoritative West African man in his late 30s, sharp white formal
+      shirt with dark tie, well-groomed short hair, direct composed expression, strong presence`,
   },
 ];
 
-/* ── Call Gemini image generation API ───────────────────────── */
-async function generateImage(interviewer) {
-  const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+/* ── Build the detailed prompt for each interviewer ──────────── */
+function buildPrompt(iv) {
+  return `
+Create a ultra-realistic professional AI interviewer ID card portrait image.
 
-  const body = {
-    contents: [{ parts: [{ text: interviewer.prompt }] }],
-    generationConfig: {
-      responseModalities: ["IMAGE"],
-      imageConfig: {
-        aspectRatio: "1:1",
-        imageSize: "2K",           // 2048 × 2048
-      },
-    },
-  };
+Subject: ${iv.appearance}
+
+The image should look like a premium professional corporate headshot / ID card portrait:
+- Person: ${iv.name}, ${iv.title} at ${iv.company}
+- Style: ${iv.personality} interview personality
+- Experience: ${iv.experience} in their field
+- Expert in: ${iv.specialties.join(", ")}
+
+Photography style:
+- Clean neutral dark studio background (#0d1117 dark navy gradient)
+- Professional three-point studio lighting, soft shadows
+- Head and upper shoulders centered composition
+- Photorealistic, highly detailed, 8K quality
+- Shallow depth of field, sharp face
+- No text overlays, no watermarks, no borders
+- The person looks directly at the camera with an expression that matches their ${iv.personality} personality
+
+Make the portrait feel like a real professional LinkedIn headshot for a tech industry interviewer.
+`.trim();
+}
+
+/* ── Call Gemini image generation API ───────────────────────── */
+async function generateImage(prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseModalities: ["IMAGE"],
+        imageConfig: {
+          aspectRatio: "1:1",
+          imageSize: "2K",        // 2048 × 2048
+        },
+      },
+    }),
   });
 
   if (!res.ok) {
@@ -144,14 +164,12 @@ async function generateImage(interviewer) {
     throw new Error(`HTTP ${res.status}: ${err.slice(0, 400)}`);
   }
 
-  const json = await res.json();
+  const json  = await res.json();
   const parts = json?.candidates?.[0]?.content?.parts ?? [];
-
   for (const part of parts) {
-    if (part.inlineData?.data) return part.inlineData.data; // base64 PNG
+    if (part.inlineData?.data) return part.inlineData.data;
   }
-
-  throw new Error(`No image in response:\n${JSON.stringify(json, null, 2).slice(0, 500)}`);
+  throw new Error(`No image in response:\n${JSON.stringify(json).slice(0, 400)}`);
 }
 
 /* ── Main ────────────────────────────────────────────────────── */
@@ -159,29 +177,28 @@ async function main() {
   console.log(`\n🎨  AI Interviewer — Portrait Generator`);
   console.log(`    Model  : ${MODEL}`);
   console.log(`    Size   : 2K (2048 × 2048)`);
-  console.log(`    Output : ${OUT_DIR}\n`);
+  console.log(`    Output : ${OUT_DIR}`);
+  console.log(`    Force  : ${FORCE ? "yes (regenerating all)" : "no (skip existing)"}\n`);
 
   const results = [];
 
   for (const iv of INTERVIEWERS) {
     const outFile = path.join(OUT_DIR, `${iv.slug}.png`);
 
-    if (fs.existsSync(outFile)) {
+    if (!FORCE && fs.existsSync(outFile)) {
       console.log(`⏭   Skipping ${iv.name} — already exists`);
       results.push({ ...iv, status: "skipped" });
       continue;
     }
 
-    process.stdout.write(`⏳  Generating ${iv.name} (${iv.personality})… `);
+    process.stdout.write(`⏳  Generating ${iv.name} (${iv.personality}, ${iv.experience})… `);
 
     try {
-      const b64 = await generateImage(iv);
+      const b64 = await generateImage(buildPrompt(iv));
       const buf  = Buffer.from(b64, "base64");
       fs.writeFileSync(outFile, buf);
-      console.log(`✅  saved  (${(buf.length / 1024).toFixed(0)} KB)`);
+      console.log(`✅  ${(buf.length / 1024).toFixed(0)} KB`);
       results.push({ ...iv, status: "ok", sizeKB: Math.round(buf.length / 1024) });
-
-      // 2 s between requests to stay within rate limits
       await new Promise((r) => setTimeout(r, 2000));
     } catch (err) {
       console.log(`❌  FAILED`);
@@ -191,31 +208,26 @@ async function main() {
   }
 
   /* ── Summary ──────────────────────────────────────────────── */
-  console.log("\n── Summary ──────────────────────────────────────────");
+  console.log("\n── Summary ──────────────────────────────────────────────");
   for (const r of results) {
     const icon   = r.status === "ok" ? "✅" : r.status === "skipped" ? "⏭ " : "❌";
     const detail = r.status === "ok"
       ? `${r.sizeKB} KB`
-      : r.status === "error"
-      ? r.error.slice(0, 80)
-      : "already present";
-    console.log(`${icon}  ${r.name.padEnd(20)}  ${detail}`);
+      : r.status === "error" ? r.error.slice(0, 80) : "already present";
+    console.log(`${icon}  ${r.name.padEnd(22)} ${detail}`);
   }
 
-  /* ── Supabase SQL snippet ─────────────────────────────────── */
+  /* ── Supabase SQL ─────────────────────────────────────────── */
   const done = results.filter((r) => r.status === "ok" || r.status === "skipped");
   if (done.length > 0) {
-    console.log("\n── Supabase SQL — paste into SQL editor ─────────────");
+    console.log("\n── Supabase SQL (paste into SQL editor) ─────────────────");
     for (const r of done) {
       console.log(
-        `UPDATE interviewers SET avatar_url = '/interviewers/${r.slug}.png' WHERE name = '${r.name}';`
+        `UPDATE interviewers SET avatar_url = '/interviewers/${r.slug}.png' WHERE id = '${r.id}';`
       );
     }
     console.log("");
   }
 }
 
-main().catch((err) => {
-  console.error("\nFatal:", err);
-  process.exit(1);
-});
+main().catch((err) => { console.error("\nFatal:", err); process.exit(1); });
