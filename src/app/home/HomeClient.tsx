@@ -8,9 +8,8 @@ import type { Database } from "@/lib/supabase/types";
 import {
   BrainCircuit, LayoutDashboard, User as UserIcon, LogOut,
   Sparkles, Mic, Play, ChevronDown, Target, Users,
-  CheckCircle2, Loader2, Briefcase, Star, BadgeCheck,
+  CheckCircle2, Loader2, BadgeCheck,
 } from "lucide-react";
-import Carousel from "@/components/ui/carousel";
 
 type Profile     = Database["public"]["Tables"]["profiles"]["Row"];
 type Interviewer = Database["public"]["Tables"]["interviewers"]["Row"];
@@ -23,7 +22,6 @@ interface Props {
   topics: Topic[];
 }
 
-/* ── Personality badge colours ─────────────────────────────── */
 const PERSONALITY_STYLES: Record<string, string> = {
   Friendly:    "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   Strict:      "bg-red-500/15 text-red-400 border-red-500/25",
@@ -33,7 +31,6 @@ const PERSONALITY_STYLES: Record<string, string> = {
   Direct:      "bg-orange-500/15 text-orange-400 border-orange-500/25",
 };
 
-/* ── Avatar gradients ────────────────────────────────────────── */
 const AVATAR_GRADIENTS = [
   "from-indigo-500 to-violet-600",
   "from-red-500 to-orange-500",
@@ -43,7 +40,6 @@ const AVATAR_GRADIENTS = [
   "from-amber-500 to-yellow-600",
 ];
 
-/* ── Topic category colours ────────────────────────────────── */
 const CATEGORY_COLOURS: Record<string, string> = {
   Technical:  "text-sky-400  bg-sky-400/10  border-sky-400/20",
   HR:         "text-pink-400 bg-pink-400/10 border-pink-400/20",
@@ -51,7 +47,7 @@ const CATEGORY_COLOURS: Record<string, string> = {
   General:    "text-slate-400 bg-slate-400/10 border-slate-400/20",
 };
 
-/* ── Interviewer card ────────────────────────────────────────── */
+/* ── Compact interviewer card ────────────────────────────────── */
 function InterviewerCard({
   interviewer,
   index,
@@ -65,71 +61,49 @@ function InterviewerCard({
 }) {
   const gradient = AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
   const initials = interviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-  const personalityStyle = PERSONALITY_STYLES[interviewer.personality ?? ""] ?? "bg-white/5 text-slate-400 border-white/10";
+  const personalityStyle =
+    PERSONALITY_STYLES[interviewer.personality ?? ""] ?? "bg-white/5 text-slate-400 border-white/10";
 
   return (
     <button
       onClick={onSelect}
-      className={`group relative flex flex-col rounded-2xl border p-5 text-left transition-all duration-200 hover:scale-[1.02] ${
+      className={`group relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 w-full ${
         selected
           ? "border-indigo-500/60 bg-indigo-500/10 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-600/10"
           : "border-white/8 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.04]"
       }`}
       aria-pressed={selected}
     >
-      {/* Selected indicator */}
-      {selected && (
-        <div className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500">
-          <CheckCircle2 className="h-3 w-3 text-white" />
-        </div>
-      )}
-
       {/* Avatar */}
-      <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} shadow-md text-lg font-black text-white overflow-hidden`}>
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-xs font-black text-white overflow-hidden`}
+      >
         {interviewer.avatar_url ? (
-          <img src={interviewer.avatar_url} alt={interviewer.name} className="h-full w-full object-cover" />
+          <img
+            src={interviewer.avatar_url}
+            alt={interviewer.name}
+            className="h-full w-full object-cover"
+          />
         ) : (
           initials
         )}
       </div>
 
-      {/* Name + title */}
-      <h3 className="text-sm font-bold text-white leading-tight">{interviewer.name}</h3>
-      <p className="mt-0.5 text-xs text-slate-400 leading-snug">{interviewer.title}</p>
-      {interviewer.company && (
-        <div className="mt-1 flex items-center gap-1">
-          <Briefcase className="h-3 w-3 text-slate-600" />
-          <p className="text-[10px] text-slate-500">{interviewer.company}</p>
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs font-bold text-white truncate">{interviewer.name}</p>
+          {selected && <CheckCircle2 className="h-3 w-3 shrink-0 text-indigo-400" />}
         </div>
-      )}
-
-      {/* Personality badge */}
-      {interviewer.personality && (
-        <span className={`mt-3 inline-block self-start rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${personalityStyle}`}>
-          {interviewer.personality}
-        </span>
-      )}
-
-      {/* Specialties */}
-      {interviewer.specialties?.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {interviewer.specialties.slice(0, 3).map((s) => (
-            <span key={s} className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400">
-              {s}
-            </span>
-          ))}
-          {interviewer.specialties.length > 3 && (
-            <span className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[10px] text-slate-500">
-              +{interviewer.specialties.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Bio snippet */}
-      {interviewer.bio && (
-        <p className="mt-3 text-[11px] leading-relaxed text-slate-500 line-clamp-2">{interviewer.bio}</p>
-      )}
+        <p className="text-[10px] text-slate-500 truncate">{interviewer.title}</p>
+        {interviewer.personality && (
+          <span
+            className={`mt-1 inline-block rounded-full border px-2 py-0 text-[9px] font-semibold leading-4 ${personalityStyle}`}
+          >
+            {interviewer.personality}
+          </span>
+        )}
+      </div>
     </button>
   );
 }
@@ -141,10 +115,10 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
   const [selectedInterviewer, setSelectedInterviewer] = useState<Interviewer | null>(
     interviewers[0] ?? null
   );
-  const [selectedTopic, setSelectedTopic]   = useState<Topic | null>(null);
-  const [topicDropdown, setTopicDropdown]   = useState(false);
-  const [starting, setStarting]             = useState(false);
-  const [error, setError]                   = useState<string | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [topicDropdown, setTopicDropdown] = useState(false);
+  const [starting, setStarting]           = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
 
   async function handleStartInterview() {
     if (!selectedInterviewer || !selectedTopic) return;
@@ -167,7 +141,6 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
       setStarting(false);
       return;
     }
-
     router.push(`/interview/${(session as { id: string }).id}`);
   }
 
@@ -185,18 +158,9 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
     return acc;
   }, {});
 
-  /* ── Carousel slides — one per interviewer ─────────────────── */
-  const carouselSlides = interviewers.map((iv) => ({
-    title: iv.name,
-    button: iv.personality ?? "Meet Interviewer",
-    src: iv.avatar_url && iv.avatar_url.startsWith("http")
-      ? iv.avatar_url
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(iv.name)}&background=6366f1&color=fff&size=400`,
-  }));
-
   const selectedIdx = selectedInterviewer
     ? interviewers.findIndex((iv) => iv.id === selectedInterviewer.id)
-    : -1;
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#060912] text-white">
@@ -249,43 +213,32 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
         </div>
       </nav>
 
-      <main className="relative pt-24 pb-20 px-6">
-        <div className="mx-auto max-w-7xl">
+      <main className="relative pt-20 pb-16 px-6">
+        <div className="mx-auto max-w-6xl">
 
-          {/* ── Welcome ─────────────────────────────────────────── */}
-          <div className="mb-14 text-center">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5">
+          {/* Welcome */}
+          <div className="mb-8 text-center">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5">
               <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Ready to practice?</span>
+              <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">
+                Ready to practice?
+              </span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
               Hey, {displayName} 👋
             </h1>
-            <p className="mt-2 text-slate-400 text-sm sm:text-base">
+            <p className="mt-1.5 text-sm text-slate-400">
               Pick an interviewer and a topic — your AI interview starts instantly.
             </p>
           </div>
 
-          {/* ── Carousel Hero ────────────────────────────────────── */}
-          {carouselSlides.length > 0 && (
-            <div className="mb-16 overflow-hidden">
-              <h2 className="mb-6 text-center text-xs font-bold tracking-widest text-slate-600 uppercase flex items-center justify-center gap-2">
-                <Star className="h-3.5 w-3.5 text-indigo-400" />
-                Meet Your AI Interviewers
-              </h2>
-              <div className="relative overflow-hidden w-full py-10">
-                <Carousel slides={carouselSlides} />
-              </div>
-            </div>
-          )}
-
-          {/* ── Two-column layout ────────────────────────────────── */}
-          <div className="grid gap-10 lg:grid-cols-2 lg:gap-14 items-start">
+          {/* Two-column layout */}
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-10 items-start">
 
             {/* ── Interviewer Grid ─────────────────────────────── */}
             <div>
-              <h2 className="mb-5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
-                <Users className="h-4 w-4" />
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
+                <Users className="h-3.5 w-3.5" />
                 Choose Your Interviewer
                 {selectedInterviewer && (
                   <span className="ml-auto text-[10px] font-semibold text-indigo-400 normal-case tracking-normal">
@@ -295,12 +248,12 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
               </h2>
 
               {interviewers.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center">
+                <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
                   <Users className="mx-auto mb-3 h-8 w-8 text-slate-700" />
                   <p className="text-sm text-slate-600">No interviewers available yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {interviewers.map((iv, i) => (
                     <InterviewerCard
                       key={iv.id}
@@ -313,26 +266,41 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                 </div>
               )}
 
-              {/* Selected interviewer detail strip */}
+              {/* Selected detail strip */}
               {selectedInterviewer && (
-                <div className="mt-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3.5 flex items-center gap-3">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white`}>
-                    {selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 flex items-center gap-3">
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white overflow-hidden`}
+                  >
+                    {selectedInterviewer.avatar_url ? (
+                      <img
+                        src={selectedInterviewer.avatar_url}
+                        alt={selectedInterviewer.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
+                    )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{selectedInterviewer.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{selectedInterviewer.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-white truncate">
+                      {selectedInterviewer.name}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate">
+                      {selectedInterviewer.title}
+                      {selectedInterviewer.company && ` · ${selectedInterviewer.company}`}
+                    </p>
                   </div>
-                  <BadgeCheck className="ml-auto h-4 w-4 shrink-0 text-indigo-400" />
+                  <BadgeCheck className="h-4 w-4 shrink-0 text-indigo-400" />
                 </div>
               )}
             </div>
 
             {/* ── Topic Selection + Start ──────────────────────── */}
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <h2 className="mb-5 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
-                  <Target className="h-4 w-4" />
+                <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
+                  <Target className="h-3.5 w-3.5" />
                   Choose a Topic
                 </h2>
 
@@ -341,7 +309,7 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                   <button
                     type="button"
                     onClick={() => setTopicDropdown(!topicDropdown)}
-                    className={`flex w-full items-center justify-between rounded-xl border bg-white/[0.03] px-4 py-3.5 text-sm transition-all ${
+                    className={`flex w-full items-center justify-between rounded-xl border bg-white/[0.03] px-4 py-3 text-sm transition-all ${
                       topicDropdown
                         ? "border-indigo-500/50 ring-2 ring-indigo-500/20"
                         : "border-white/10 hover:border-white/20"
@@ -351,63 +319,91 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                     <span className={selectedTopic ? "text-white" : "text-slate-500"}>
                       {selectedTopic ? selectedTopic.name : "Select an interview topic…"}
                     </span>
-                    <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${topicDropdown ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 text-slate-500 transition-transform ${topicDropdown ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {topicDropdown && (
-                    <div className="absolute top-full left-0 right-0 z-20 mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-[#0d1117] shadow-2xl shadow-black/50">
-                      {Object.entries(groupedTopics).map(([category, catTopics]) => (
-                        <div key={category}>
-                          <div className={`sticky top-0 px-4 py-2 text-[10px] font-bold tracking-widest uppercase bg-[#0d1117] ${CATEGORY_COLOURS[category] ?? "text-slate-500"}`}>
-                            {category}
-                          </div>
-                          {catTopics.map((t) => (
-                            <button
-                              key={t.id}
-                              onClick={() => {
-                                setSelectedTopic(t);
-                                setTopicDropdown(false);
-                              }}
-                              className={`flex w-full items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-white/5 ${
-                                selectedTopic?.id === t.id ? "bg-indigo-500/10 text-indigo-300" : "text-slate-300"
+                    <>
+                      <div className="absolute top-full left-0 right-0 z-20 mt-2 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-[#0d1117] shadow-2xl shadow-black/50">
+                        {Object.entries(groupedTopics).map(([category, catTopics]) => (
+                          <div key={category}>
+                            <div
+                              className={`sticky top-0 px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase bg-[#0d1117] ${
+                                CATEGORY_COLOURS[category] ?? "text-slate-500"
                               }`}
                             >
-                              <span>{t.name}</span>
-                              {selectedTopic?.id === t.id && (
-                                <CheckCircle2 className="h-4 w-4 text-indigo-400" />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {topicDropdown && (
-                    <div className="fixed inset-0 z-10" onClick={() => setTopicDropdown(false)} aria-hidden="true" />
+                              {category}
+                            </div>
+                            {catTopics.map((t) => (
+                              <button
+                                key={t.id}
+                                onClick={() => {
+                                  setSelectedTopic(t);
+                                  setTopicDropdown(false);
+                                }}
+                                className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
+                                  selectedTopic?.id === t.id
+                                    ? "bg-indigo-500/10 text-indigo-300"
+                                    : "text-slate-300"
+                                }`}
+                              >
+                                <span>{t.name}</span>
+                                {selectedTopic?.id === t.id && (
+                                  <CheckCircle2 className="h-4 w-4 text-indigo-400" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setTopicDropdown(false)}
+                        aria-hidden="true"
+                      />
+                    </>
                   )}
                 </div>
 
                 {/* Topic description */}
                 {selectedTopic?.description && (
-                  <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                    <p className="text-xs leading-relaxed text-slate-500">{selectedTopic.description}</p>
+                  <div className="mt-2 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-2.5">
+                    <p className="text-xs leading-relaxed text-slate-500">
+                      {selectedTopic.description}
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Session preview */}
               {selectedInterviewer && selectedTopic && (
-                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-5 py-4 space-y-3">
-                  <p className="text-xs font-bold tracking-widest text-indigo-400 uppercase">Session Preview</p>
-                  <div className="flex items-start gap-3">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-sm font-bold text-white`}>
-                      {selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3.5 space-y-2.5">
+                  <p className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
+                    Session Preview
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white overflow-hidden`}
+                    >
+                      {selectedInterviewer.avatar_url ? (
+                        <img
+                          src={selectedInterviewer.avatar_url}
+                          alt={selectedInterviewer.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
+                      )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">{selectedInterviewer.name}</p>
+                      <p className="text-sm font-semibold text-white">
+                        {selectedInterviewer.name}
+                      </p>
                       <p className="text-xs text-slate-400">
-                        will interview you on <span className="text-indigo-300">{selectedTopic.name}</span>
+                        will interview you on{" "}
+                        <span className="text-indigo-300">{selectedTopic.name}</span>
                       </p>
                     </div>
                   </div>
@@ -431,16 +427,16 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
               <button
                 onClick={handleStartInterview}
                 disabled={!selectedInterviewer || !selectedTopic || starting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4 text-base font-black text-white shadow-xl shadow-indigo-600/30 transition-all hover:brightness-110 hover:shadow-indigo-600/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-indigo-600/30 transition-all hover:brightness-110 hover:shadow-indigo-600/40 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {starting ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Starting…
                   </>
                 ) : (
                   <>
-                    <Play className="h-5 w-5 fill-white" />
+                    <Play className="h-4 w-4 fill-white" />
                     Start Interview
                   </>
                 )}
@@ -452,22 +448,24 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
             </div>
           </div>
 
-          {/* ── How it works ─────────────────────────────────────── */}
-          <div className="mt-20">
-            <h2 className="mb-8 text-center text-xs font-bold tracking-widest text-slate-600 uppercase">How it works</h2>
-            <div className="grid gap-4 sm:grid-cols-4">
+          {/* How it works */}
+          <div className="mt-16">
+            <h2 className="mb-6 text-center text-xs font-bold tracking-widest text-slate-600 uppercase">
+              How it works
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-4">
               {[
                 { icon: Users,           n: "01", label: "Pick Interviewer",  desc: "Choose the AI persona that matches your target role." },
                 { icon: Target,          n: "02", label: "Select Topic",       desc: "Pick from 16+ categories — DSA, System Design, HR, and more." },
                 { icon: Mic,             n: "03", label: "Live Interview",     desc: "Speak or type your answers in real-time with the AI." },
                 { icon: LayoutDashboard, n: "04", label: "Get Analysis",      desc: "Review your scores, strengths, and action items on the Dashboard." },
               ].map(({ icon: Icon, n, label, desc }) => (
-                <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-5 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 text-lg font-black text-indigo-400">
+                <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center">
+                  <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 text-base font-black text-indigo-400">
                     {n}
                   </div>
-                  <p className="text-sm font-semibold text-white mb-1">{label}</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                  <p className="text-xs font-semibold text-white mb-1">{label}</p>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
