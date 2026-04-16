@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hire-check - AI-Powered Mock Interview Platform",
+  title: "AI Interviewer - AI-Powered Mock Interview Platform",
   description:
     "Practice real-world interviews with AI characters. Get instant feedback, improve your skills, and ace your next job interview for Software, HR, Tech Lead, and more.",
 };

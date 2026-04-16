@@ -103,7 +103,7 @@ function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
               <div className="h-3 w-3 rounded-full bg-red-400" />
               <div className="h-3 w-3 rounded-full bg-amber-400" />
               <div className="h-3 w-3 rounded-full bg-green-400" />
-              <span className="ml-3 text-xs text-muted">Hire-check Session</span>
+              <span className="ml-3 text-xs text-muted">AI Interviewer Session</span>
             </div>
             {/* Interview conversation preview */}
             <div className="p-6 sm:p-8">
@@ -213,7 +213,7 @@ function Features() {
     <section id="features" className="relative py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold tracking-wide text-primary">WHY INTERVIEWAI</p>
+          <p className="text-sm font-semibold tracking-wide text-primary">WHY AI INTERVIEWER</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
             Everything You Need to Interview Like a Pro
           </h2>
@@ -397,7 +397,7 @@ const testimonials = [
     name: "Priya Sharma",
     role: "Frontend Developer at Google",
     content:
-      "Hire-check helped me practice system design and React questions. The AI felt like a real interviewer. I cracked my Google interview on the first try!",
+      "AI Interviewer helped me practice system design and React questions. The AI felt like a real interviewer. I cracked my Google interview on the first try!",
     rating: 5,
   },
   {
@@ -494,7 +494,7 @@ function CTA({ isLoggedIn }: { isLoggedIn: boolean }) {
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
             Join thousands of candidates who transformed their interview skills with
-            Hire-check. Start practicing for free — no credit card required.
+            AI Interviewer. Start practicing for free — no credit card required.
           </p>
           <div className="relative mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
@@ -532,12 +532,12 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
-            <a href="/" className="flex items-center gap-2" aria-label="Hire-check Home">
+            <a href="/" className="flex items-center gap-2" aria-label="AI Interviewer Home">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
                 <BrainCircuit className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
               <span className="text-lg font-bold tracking-tight">
-                Hire<span className="text-primary">-check</span>
+                AI <span className="text-primary">Interviewer</span>
               </span>
             </a>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
@@ -576,7 +576,7 @@ function Footer() {
         </div>
         <div className="mt-10 border-t border-border pt-8 text-center">
           <p className="text-sm text-muted">
-            &copy; {new Date().getFullYear()} Hire-check. All rights reserved.
+            &copy; {new Date().getFullYear()} AI Interviewer. All rights reserved.
           </p>
         </div>
       </div>
