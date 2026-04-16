@@ -8,8 +8,9 @@ import type { Database } from "@/lib/supabase/types";
 import {
   BrainCircuit, LayoutDashboard, User as UserIcon, LogOut,
   Sparkles, Mic, Play, ChevronDown, Target, Users,
-  CheckCircle2, Loader2, BadgeCheck,
+  CheckCircle2, Loader2, Briefcase,
 } from "lucide-react";
+import Carousel from "@/components/ui/carousel";
 
 type Profile     = Database["public"]["Tables"]["profiles"]["Row"];
 type Interviewer = Database["public"]["Tables"]["interviewers"]["Row"];
@@ -47,7 +48,7 @@ const CATEGORY_COLOURS: Record<string, string> = {
   General:    "text-slate-400 bg-slate-400/10 border-slate-400/20",
 };
 
-/* ── Compact interviewer card ────────────────────────────────── */
+/* ── Full ID-card style interviewer card ─────────────────────── */
 function InterviewerCard({
   interviewer,
   index,
@@ -67,16 +68,23 @@ function InterviewerCard({
   return (
     <button
       onClick={onSelect}
-      className={`group relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 w-full ${
+      className={`group relative flex flex-col rounded-2xl border p-4 text-left transition-all duration-200 hover:scale-[1.02] ${
         selected
           ? "border-indigo-500/60 bg-indigo-500/10 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-600/10"
           : "border-white/8 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.04]"
       }`}
       aria-pressed={selected}
     >
+      {/* Selected checkmark */}
+      {selected && (
+        <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500">
+          <CheckCircle2 className="h-3 w-3 text-white" />
+        </div>
+      )}
+
       {/* Avatar */}
       <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-xs font-black text-white overflow-hidden`}
+        className={`mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-sm font-black text-white overflow-hidden shadow-md`}
       >
         {interviewer.avatar_url ? (
           <img
@@ -89,27 +97,51 @@ function InterviewerCard({
         )}
       </div>
 
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="text-xs font-bold text-white truncate">{interviewer.name}</p>
-          {selected && <CheckCircle2 className="h-3 w-3 shrink-0 text-indigo-400" />}
+      {/* Name + title + company */}
+      <p className="text-sm font-bold text-white leading-tight">{interviewer.name}</p>
+      <p className="mt-0.5 text-[11px] text-slate-400">{interviewer.title}</p>
+      {interviewer.company && (
+        <div className="mt-1 flex items-center gap-1">
+          <Briefcase className="h-2.5 w-2.5 text-slate-600" />
+          <p className="text-[10px] text-slate-500">{interviewer.company}</p>
         </div>
-        <p className="text-[10px] text-slate-500 truncate">{interviewer.title}</p>
-        {interviewer.personality && (
-          <span
-            className={`mt-1 inline-block rounded-full border px-2 py-0 text-[9px] font-semibold leading-4 ${personalityStyle}`}
-          >
-            {interviewer.personality}
-          </span>
-        )}
-      </div>
+      )}
+
+      {/* Personality badge */}
+      {interviewer.personality && (
+        <span className={`mt-2.5 self-start rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${personalityStyle}`}>
+          {interviewer.personality}
+        </span>
+      )}
+
+      {/* Specialties */}
+      {interviewer.specialties?.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1">
+          {interviewer.specialties.slice(0, 3).map((s) => (
+            <span key={s} className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[9px] text-slate-400">
+              {s}
+            </span>
+          ))}
+          {interviewer.specialties.length > 3 && (
+            <span className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[9px] text-slate-500">
+              +{interviewer.specialties.length - 3}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Bio */}
+      {interviewer.bio && (
+        <p className="mt-2.5 text-[10px] leading-relaxed text-slate-500 line-clamp-2">
+          {interviewer.bio}
+        </p>
+      )}
     </button>
   );
 }
 
 export default function HomeClient({ user, profile, interviewers, topics }: Props) {
-  const router = useRouter();
+  const router   = useRouter();
   const supabase = createClient();
 
   const [selectedInterviewer, setSelectedInterviewer] = useState<Interviewer | null>(
@@ -129,9 +161,9 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
     const { data: session, error: sessionError } = await (supabase as any)
       .from("interview_sessions")
       .insert({
-        user_id: user.id,
+        user_id:        user.id,
         interviewer_id: selectedInterviewer.id,
-        topic_id: selectedTopic.id,
+        topic_id:       selectedTopic.id,
       })
       .select()
       .single();
@@ -162,9 +194,21 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
     ? interviewers.findIndex((iv) => iv.id === selectedInterviewer.id)
     : 0;
 
+  /* ── Carousel slides — one per interviewer ─────────────────── */
+  const carouselSlides = interviewers.map((iv) => ({
+    title:  iv.name,
+    button: iv.personality ?? "Meet Interviewer",
+    src:    iv.avatar_url && iv.avatar_url.startsWith("/")
+      ? iv.avatar_url                             // local public/ image
+      : iv.avatar_url && iv.avatar_url.startsWith("http")
+        ? iv.avatar_url                           // remote URL
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(iv.name)}&background=6366f1&color=fff&size=400`,
+  }));
+
   return (
     <div className="min-h-screen bg-[#060912] text-white">
-      {/* Background effects */}
+
+      {/* Background glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] h-[700px] w-[700px] rounded-full bg-indigo-600/10 blur-[150px]" />
         <div className="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-violet-600/10 blur-[130px]" />
@@ -214,7 +258,7 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
       </nav>
 
       <main className="relative pt-20 pb-16 px-6">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
 
           {/* Welcome */}
           <div className="mb-8 text-center">
@@ -232,10 +276,22 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
             </p>
           </div>
 
-          {/* Two-column layout */}
-          <div className="grid gap-6 lg:grid-cols-2 lg:gap-10 items-start">
+          {/* ── Carousel ─────────────────────────────────────────── */}
+          {carouselSlides.length > 0 && (
+            <div className="mb-10 overflow-hidden">
+              <p className="mb-4 text-center text-[10px] font-bold tracking-widest text-slate-600 uppercase flex items-center justify-center gap-2">
+                <Users className="h-3 w-3" /> Meet your AI interviewers
+              </p>
+              <div className="relative w-full overflow-hidden py-8">
+                <Carousel slides={carouselSlides} />
+              </div>
+            </div>
+          )}
 
-            {/* ── Interviewer Grid ─────────────────────────────── */}
+          {/* ── Two-column: cards + topic/start ──────────────────── */}
+          <div className="grid gap-8 lg:grid-cols-[1fr_380px] items-start">
+
+            {/* ── Interviewer ID Cards ─────────────────────────── */}
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
                 <Users className="h-3.5 w-3.5" />
@@ -253,7 +309,7 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                   <p className="text-sm text-slate-600">No interviewers available yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-3">
                   {interviewers.map((iv, i) => (
                     <InterviewerCard
                       key={iv.id}
@@ -265,46 +321,16 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                   ))}
                 </div>
               )}
-
-              {/* Selected detail strip */}
-              {selectedInterviewer && (
-                <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 flex items-center gap-3">
-                  <div
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white overflow-hidden`}
-                  >
-                    {selectedInterviewer.avatar_url ? (
-                      <img
-                        src={selectedInterviewer.avatar_url}
-                        alt={selectedInterviewer.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-white truncate">
-                      {selectedInterviewer.name}
-                    </p>
-                    <p className="text-[10px] text-slate-400 truncate">
-                      {selectedInterviewer.title}
-                      {selectedInterviewer.company && ` · ${selectedInterviewer.company}`}
-                    </p>
-                  </div>
-                  <BadgeCheck className="h-4 w-4 shrink-0 text-indigo-400" />
-                </div>
-              )}
             </div>
 
-            {/* ── Topic Selection + Start ──────────────────────── */}
-            <div className="space-y-5">
+            {/* ── Topic + Start ────────────────────────────────── */}
+            <div className="space-y-5 lg:sticky lg:top-24">
               <div>
                 <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
                   <Target className="h-3.5 w-3.5" />
                   Choose a Topic
                 </h2>
 
-                {/* Dropdown */}
                 <div className="relative">
                   <button
                     type="button"
@@ -339,20 +365,13 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                             {catTopics.map((t) => (
                               <button
                                 key={t.id}
-                                onClick={() => {
-                                  setSelectedTopic(t);
-                                  setTopicDropdown(false);
-                                }}
+                                onClick={() => { setSelectedTopic(t); setTopicDropdown(false); }}
                                 className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
-                                  selectedTopic?.id === t.id
-                                    ? "bg-indigo-500/10 text-indigo-300"
-                                    : "text-slate-300"
+                                  selectedTopic?.id === t.id ? "bg-indigo-500/10 text-indigo-300" : "text-slate-300"
                                 }`}
                               >
                                 <span>{t.name}</span>
-                                {selectedTopic?.id === t.id && (
-                                  <CheckCircle2 className="h-4 w-4 text-indigo-400" />
-                                )}
+                                {selectedTopic?.id === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
                               </button>
                             ))}
                           </div>
@@ -367,12 +386,9 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                   )}
                 </div>
 
-                {/* Topic description */}
                 {selectedTopic?.description && (
                   <div className="mt-2 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-2.5">
-                    <p className="text-xs leading-relaxed text-slate-500">
-                      {selectedTopic.description}
-                    </p>
+                    <p className="text-xs leading-relaxed text-slate-500">{selectedTopic.description}</p>
                   </div>
                 )}
               </div>
@@ -380,97 +396,57 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
               {/* Session preview */}
               {selectedInterviewer && selectedTopic && (
                 <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3.5 space-y-2.5">
-                  <p className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
-                    Session Preview
-                  </p>
+                  <p className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">Session Preview</p>
                   <div className="flex items-center gap-3">
                     <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white overflow-hidden`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white overflow-hidden`}
                     >
                       {selectedInterviewer.avatar_url ? (
-                        <img
-                          src={selectedInterviewer.avatar_url}
-                          alt={selectedInterviewer.name}
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
                       ) : (
                         selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">
-                        {selectedInterviewer.name}
-                      </p>
+                      <p className="text-sm font-semibold text-white">{selectedInterviewer.name}</p>
                       <p className="text-xs text-slate-400">
-                        will interview you on{" "}
-                        <span className="text-indigo-300">{selectedTopic.name}</span>
+                        will interview you on <span className="text-indigo-300">{selectedTopic.name}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-slate-500">
                     <Mic className="h-3.5 w-3.5 text-indigo-400" />
-                    <span>Voice + text interaction</span>
+                    <span>Voice + text</span>
                     <span className="text-white/20">•</span>
                     <span>Recorded &amp; analysed</span>
                   </div>
                 </div>
               )}
 
-              {/* Error */}
               {error && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                   {error}
                 </div>
               )}
 
-              {/* Start button */}
               <button
                 onClick={handleStartInterview}
                 disabled={!selectedInterviewer || !selectedTopic || starting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-indigo-600/30 transition-all hover:brightness-110 hover:shadow-indigo-600/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-indigo-600/30 transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {starting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Starting…
-                  </>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Starting…</>
                 ) : (
-                  <>
-                    <Play className="h-4 w-4 fill-white" />
-                    Start Interview
-                  </>
+                  <><Play className="h-4 w-4 fill-white" /> Start Interview</>
                 )}
               </button>
 
               <p className="text-center text-xs text-slate-600">
-                The session is recorded (audio + text) for performance analysis.
+                Recorded (audio + text) for performance analysis.
               </p>
             </div>
-          </div>
 
-          {/* How it works */}
-          <div className="mt-16">
-            <h2 className="mb-6 text-center text-xs font-bold tracking-widest text-slate-600 uppercase">
-              How it works
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-4">
-              {[
-                { icon: Users,           n: "01", label: "Pick Interviewer",  desc: "Choose the AI persona that matches your target role." },
-                { icon: Target,          n: "02", label: "Select Topic",       desc: "Pick from 16+ categories — DSA, System Design, HR, and more." },
-                { icon: Mic,             n: "03", label: "Live Interview",     desc: "Speak or type your answers in real-time with the AI." },
-                { icon: LayoutDashboard, n: "04", label: "Get Analysis",      desc: "Review your scores, strengths, and action items on the Dashboard." },
-              ].map(({ icon: Icon, n, label, desc }) => (
-                <div key={n} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center">
-                  <div className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 text-base font-black text-indigo-400">
-                    {n}
-                  </div>
-                  <p className="text-xs font-semibold text-white mb-1">{label}</p>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">{desc}</p>
-                </div>
-              ))}
-            </div>
           </div>
-
         </div>
       </main>
     </div>
