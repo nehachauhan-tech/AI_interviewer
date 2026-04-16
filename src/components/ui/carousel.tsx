@@ -161,6 +161,11 @@ export default function Carousel({ slides, initialIndex = 1, onSlideChange }: Ca
     if (current !== index) handleChange(index);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft") { e.preventDefault(); handlePreviousClick(); }
+    if (e.key === "ArrowRight") { e.preventDefault(); handleNextClick(); }
+  };
+
   const id = useId();
 
   // Calculate translateX to center the current slide
@@ -170,11 +175,13 @@ export default function Carousel({ slides, initialIndex = 1, onSlideChange }: Ca
 
   return (
     <div
-      className="relative w-full"
+      className="relative w-full overflow-hidden outline-none"
       aria-labelledby={`carousel-heading-${id}`}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
     >
-      {/* Slides track — centered with overflow visible */}
-      <div className="overflow-visible flex justify-center">
+      {/* Slides track — centered, clipped horizontally */}
+      <div className="flex justify-center">
         <div className="relative" style={{ width: `${slideWidth}px` }}>
           <ul
             className="flex transition-transform duration-700 ease-in-out"

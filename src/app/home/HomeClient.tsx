@@ -119,7 +119,7 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
   }));
 
   return (
-    <div className="min-h-screen bg-[#060912] text-white">
+    <div className="min-h-screen bg-[#060912] text-white overflow-x-hidden">
 
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
