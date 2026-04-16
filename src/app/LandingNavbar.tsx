@@ -34,12 +34,12 @@ export default function LandingNavbar({ isLoggedIn, userInitials, userEmail, ava
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2" aria-label="InterviewAI Home">
+        <a href="/" className="flex items-center gap-2" aria-label="Hire-check Home">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
             <BrainCircuit className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
           <span className="text-lg font-bold tracking-tight">
-            Interview<span className="text-primary">AI</span>
+            Hire<span className="text-primary">-check</span>
           </span>
         </a>
 

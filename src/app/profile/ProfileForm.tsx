@@ -104,7 +104,7 @@ export default function ProfileForm({ user, profile }: Props) {
               <BrainCircuit className="h-4 w-4 text-white" />
             </div>
             <span className="text-base font-bold">
-              Interview<span className="text-indigo-400">AI</span>
+              Hire<span className="text-indigo-400">-check</span>
             </span>
           </a>
           <div className="flex items-center gap-2">
