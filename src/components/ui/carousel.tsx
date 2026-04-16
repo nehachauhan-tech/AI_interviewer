@@ -24,10 +24,8 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
   useEffect(() => {
     const animate = () => {
       if (!slideRef.current) return;
-      const x = xRef.current;
-      const y = yRef.current;
-      slideRef.current.style.setProperty("--x", `${x}px`);
-      slideRef.current.style.setProperty("--y", `${y}px`);
+      slideRef.current.style.setProperty("--x", `${xRef.current}px`);
+      slideRef.current.style.setProperty("--y", `${yRef.current}px`);
       frameRef.current = requestAnimationFrame(animate);
     };
     frameRef.current = requestAnimationFrame(animate);
@@ -54,58 +52,60 @@ const Slide = ({ slide, index, current, handleSlideClick }: SlideProps) => {
   };
 
   const { src, button, title } = slide;
+  const isActive = current === index;
 
   return (
-    <div className="[perspective:1200px] [transform-style:preserve-3d]">
+    <div className="[perspective:1200px] [transform-style:preserve-3d] shrink-0">
       <li
         ref={slideRef}
-        className="flex flex-1 flex-col items-center justify-center relative text-center text-white opacity-100 transition-all duration-300 ease-in-out w-[70vmin] h-[70vmin] mx-[4vmin] z-10"
+        className="flex flex-col items-center justify-end relative text-center text-white cursor-pointer transition-all duration-500 ease-in-out w-[280px] h-[360px] sm:w-[320px] sm:h-[400px] mx-3 z-10 rounded-2xl overflow-hidden"
         onClick={() => handleSlideClick(index)}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{
-          transform:
-            current !== index
-              ? "scale(0.98) rotateX(8deg)"
-              : "scale(1) rotateX(0deg)",
-          transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: isActive
+            ? "scale(1) rotateX(0deg)"
+            : "scale(0.88) rotateX(6deg)",
+          opacity: isActive ? 1 : 0.5,
+          transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease",
           transformOrigin: "bottom",
         }}
       >
         <div
-          className="absolute top-0 left-0 w-full h-full bg-[#1D1F2F] rounded-[1%] overflow-hidden transition-all duration-150 ease-out"
+          className="absolute inset-0 bg-[#1D1F2F] rounded-2xl overflow-hidden transition-all duration-150 ease-out"
           style={{
-            transform:
-              current === index
-                ? "translate3d(calc(var(--x) / 30), calc(var(--y) / 30), 0)"
-                : "none",
+            transform: isActive
+              ? "translate3d(calc(var(--x) / 40), calc(var(--y) / 40), 0)"
+              : "none",
           }}
         >
           <img
-            className="absolute inset-0 w-[120%] h-[120%] object-cover opacity-100 transition-opacity duration-600 ease-in-out"
-            style={{ opacity: current === index ? 1 : 0.5 }}
+            className="absolute inset-0 w-[115%] h-[115%] object-cover transition-opacity duration-500"
+            style={{ opacity: isActive ? 1 : 0.6 }}
             alt={title}
             src={src}
             onLoad={imageLoaded}
             loading="eager"
             decoding="sync"
           />
-          {current === index && (
-            <div className="absolute inset-0 bg-black/30 transition-all duration-1000" />
+          {isActive && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-all duration-700" />
           )}
         </div>
+
+        {/* Info overlay — only visible on active slide */}
         <article
-          className={`relative p-[4vmin] transition-opacity duration-1000 ease-in-out ${
-            current === index ? "opacity-100 visible" : "opacity-0 invisible"
+          className={`relative z-10 w-full p-5 text-left transition-all duration-500 ${
+            isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           }`}
         >
-          <h2 className="text-lg md:text-2xl lg:text-4xl font-semibold relative">
+          <h2 className="text-xl sm:text-2xl font-bold leading-tight drop-shadow-lg">
             {title}
           </h2>
-          <div className="flex justify-center">
-            <button className="mt-6 px-4 py-2 w-fit mx-auto sm:text-sm text-black bg-white h-12 border border-transparent text-xs flex justify-center items-center rounded-2xl hover:shadow-lg transition duration-200 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]">
+          <div className="mt-2">
+            <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-white/20 backdrop-blur-sm text-white/90">
               {button}
-            </button>
+            </span>
           </div>
         </article>
       </li>
@@ -119,65 +119,84 @@ interface CarouselControlProps {
   handleClick: () => void;
 }
 
-const CarouselControl = ({ type, title, handleClick }: CarouselControlProps) => {
-  return (
-    <button
-      className={`w-10 h-10 flex items-center mx-2 justify-center bg-neutral-200 dark:bg-neutral-800 border-3 border-transparent rounded-full focus:border-[#6D64F7] focus:outline-none hover:-translate-y-0.5 active:translate-y-0.5 transition duration-200 ${
-        type === "previous" ? "rotate-180" : ""
-      }`}
-      title={title}
-      onClick={handleClick}
-    >
-      <IconArrowNarrowRight className="text-neutral-600 dark:text-neutral-200" />
-    </button>
-  );
-};
+const CarouselControl = ({ type, title, handleClick }: CarouselControlProps) => (
+  <button
+    className={`w-11 h-11 flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/20 rounded-full hover:bg-white/20 hover:-translate-y-0.5 active:translate-y-0.5 transition duration-200 ${
+      type === "previous" ? "rotate-180" : ""
+    }`}
+    title={title}
+    onClick={handleClick}
+  >
+    <IconArrowNarrowRight className="text-white w-5 h-5" />
+  </button>
+);
 
 interface CarouselProps {
   slides: SlideData[];
+  initialIndex?: number;
+  onSlideChange?: (index: number) => void;
 }
 
-export default function Carousel({ slides }: CarouselProps) {
-  const [current, setCurrent] = useState(0);
+export default function Carousel({ slides, initialIndex = 1, onSlideChange }: CarouselProps) {
+  const [current, setCurrent] = useState(
+    Math.min(initialIndex, slides.length - 1)
+  );
+
+  const handleChange = (next: number) => {
+    setCurrent(next);
+    onSlideChange?.(next);
+  };
 
   const handlePreviousClick = () => {
-    const previous = current - 1;
-    setCurrent(previous < 0 ? slides.length - 1 : previous);
+    const prev = current - 1;
+    handleChange(prev < 0 ? slides.length - 1 : prev);
   };
 
   const handleNextClick = () => {
     const next = current + 1;
-    setCurrent(next === slides.length ? 0 : next);
+    handleChange(next === slides.length ? 0 : next);
   };
 
   const handleSlideClick = (index: number) => {
-    if (current !== index) setCurrent(index);
+    if (current !== index) handleChange(index);
   };
 
   const id = useId();
 
+  // Calculate translateX to center the current slide
+  // Each slide is ~320px + 24px margin = 344px. We want current slide centered.
+  const slideWidth = 344; // sm width + gap
+  const offset = current * slideWidth;
+
   return (
     <div
-      className="relative w-[70vmin] h-[70vmin] mx-auto"
+      className="relative w-full"
       aria-labelledby={`carousel-heading-${id}`}
     >
-      <ul
-        className="absolute flex mx-[-4vmin] transition-transform duration-1000 ease-in-out"
-        style={{
-          transform: `translateX(-${current * (100 / slides.length)}%)`,
-        }}
-      >
-        {slides.map((slide, index) => (
-          <Slide
-            key={index}
-            slide={slide}
-            index={index}
-            current={current}
-            handleSlideClick={handleSlideClick}
-          />
-        ))}
-      </ul>
-      <div className="absolute flex justify-center w-full top-[calc(100%+1rem)]">
+      {/* Slides track — centered with overflow visible */}
+      <div className="overflow-visible flex justify-center">
+        <div className="relative" style={{ width: `${slideWidth}px` }}>
+          <ul
+            className="flex transition-transform duration-700 ease-in-out"
+            style={{
+              transform: `translateX(-${offset}px)`,
+            }}
+          >
+            {slides.map((slide, index) => (
+              <Slide
+                key={index}
+                slide={slide}
+                index={index}
+                current={current}
+                handleSlideClick={handleSlideClick}
+              />
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Navigation arrows — below the carousel, always visible */}
+      <div className="flex justify-center gap-4 mt-6">
         <CarouselControl
           type="previous"
           title="Go to previous slide"

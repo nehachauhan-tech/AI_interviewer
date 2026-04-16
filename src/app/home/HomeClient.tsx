@@ -8,7 +8,7 @@ import type { Database } from "@/lib/supabase/types";
 import {
   BrainCircuit, LayoutDashboard, User as UserIcon, LogOut,
   Sparkles, Mic, Play, ChevronDown, Target, Users,
-  CheckCircle2, Loader2, Briefcase,
+  CheckCircle2, Loader2, Briefcase, X,
 } from "lucide-react";
 import Carousel from "@/components/ui/carousel";
 
@@ -48,109 +48,32 @@ const CATEGORY_COLOURS: Record<string, string> = {
   General:    "text-slate-400 bg-slate-400/10 border-slate-400/20",
 };
 
-/* ── Full ID-card style interviewer card ─────────────────────── */
-function InterviewerCard({
-  interviewer,
-  index,
-  selected,
-  onSelect,
-}: {
-  interviewer: Interviewer;
-  index: number;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const gradient = AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
-  const initials = interviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-  const personalityStyle =
-    PERSONALITY_STYLES[interviewer.personality ?? ""] ?? "bg-white/5 text-slate-400 border-white/10";
-
-  return (
-    <button
-      onClick={onSelect}
-      className={`group relative flex flex-col rounded-2xl border p-4 text-left transition-all duration-200 hover:scale-[1.02] ${
-        selected
-          ? "border-indigo-500/60 bg-indigo-500/10 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-600/10"
-          : "border-white/8 bg-white/[0.025] hover:border-white/15 hover:bg-white/[0.04]"
-      }`}
-      aria-pressed={selected}
-    >
-      {/* Selected checkmark */}
-      {selected && (
-        <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500">
-          <CheckCircle2 className="h-3 w-3 text-white" />
-        </div>
-      )}
-
-      {/* Avatar */}
-      <div
-        className={`mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-sm font-black text-white overflow-hidden shadow-md`}
-      >
-        {interviewer.avatar_url ? (
-          <img
-            src={interviewer.avatar_url}
-            alt={interviewer.name}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          initials
-        )}
-      </div>
-
-      {/* Name + title + company */}
-      <p className="text-sm font-bold text-white leading-tight">{interviewer.name}</p>
-      <p className="mt-0.5 text-[11px] text-slate-400">{interviewer.title}</p>
-      {interviewer.company && (
-        <div className="mt-1 flex items-center gap-1">
-          <Briefcase className="h-2.5 w-2.5 text-slate-600" />
-          <p className="text-[10px] text-slate-500">{interviewer.company}</p>
-        </div>
-      )}
-
-      {/* Personality badge */}
-      {interviewer.personality && (
-        <span className={`mt-2.5 self-start rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${personalityStyle}`}>
-          {interviewer.personality}
-        </span>
-      )}
-
-      {/* Specialties */}
-      {interviewer.specialties?.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1">
-          {interviewer.specialties.slice(0, 3).map((s) => (
-            <span key={s} className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[9px] text-slate-400">
-              {s}
-            </span>
-          ))}
-          {interviewer.specialties.length > 3 && (
-            <span className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[9px] text-slate-500">
-              +{interviewer.specialties.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Bio */}
-      {interviewer.bio && (
-        <p className="mt-2.5 text-[10px] leading-relaxed text-slate-500 line-clamp-2">
-          {interviewer.bio}
-        </p>
-      )}
-    </button>
-  );
-}
-
 export default function HomeClient({ user, profile, interviewers, topics }: Props) {
   const router   = useRouter();
   const supabase = createClient();
 
-  const [selectedInterviewer, setSelectedInterviewer] = useState<Interviewer | null>(
-    interviewers[0] ?? null
-  );
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
-  const [topicDropdown, setTopicDropdown] = useState(false);
-  const [starting, setStarting]           = useState(false);
-  const [error, setError]                 = useState<string | null>(null);
+  const [selectedIdx, setSelectedIdx]       = useState(Math.min(1, interviewers.length - 1));
+  const [selectedTopic, setSelectedTopic]   = useState<Topic | null>(null);
+  const [showPopup, setShowPopup]           = useState(false);
+  const [starting, setStarting]             = useState(false);
+  const [error, setError]                   = useState<string | null>(null);
+
+  const selectedInterviewer = interviewers[selectedIdx] ?? null;
+
+  const groupedTopics = topics.reduce<Record<string, Topic[]>>((acc, t) => {
+    if (!acc[t.category]) acc[t.category] = [];
+    acc[t.category].push(t);
+    return acc;
+  }, {});
+
+  function handleCarouselChange(index: number) {
+    setSelectedIdx(index);
+  }
+
+  function handleSelectInterviewer() {
+    if (!selectedInterviewer) return;
+    setShowPopup(true);
+  }
 
   async function handleStartInterview() {
     if (!selectedInterviewer || !selectedTopic) return;
@@ -183,32 +106,22 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
   }
 
   const displayName = profile?.full_name || user.email?.split("@")[0] || "there";
+  const gradient    = AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length];
+  const initials    = selectedInterviewer?.name.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "AI";
+  const personalityStyle = PERSONALITY_STYLES[selectedInterviewer?.personality ?? ""] ?? "bg-white/5 text-slate-400 border-white/10";
 
-  const groupedTopics = topics.reduce<Record<string, Topic[]>>((acc, t) => {
-    if (!acc[t.category]) acc[t.category] = [];
-    acc[t.category].push(t);
-    return acc;
-  }, {});
-
-  const selectedIdx = selectedInterviewer
-    ? interviewers.findIndex((iv) => iv.id === selectedInterviewer.id)
-    : 0;
-
-  /* ── Carousel slides — one per interviewer ─────────────────── */
   const carouselSlides = interviewers.map((iv) => ({
     title:  iv.name,
     button: iv.personality ?? "Meet Interviewer",
-    src:    iv.avatar_url && iv.avatar_url.startsWith("/")
-      ? iv.avatar_url                             // local public/ image
-      : iv.avatar_url && iv.avatar_url.startsWith("http")
-        ? iv.avatar_url                           // remote URL
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(iv.name)}&background=6366f1&color=fff&size=400`,
+    src:    iv.avatar_url && (iv.avatar_url.startsWith("/") || iv.avatar_url.startsWith("http"))
+      ? iv.avatar_url
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(iv.name)}&background=6366f1&color=fff&size=400`,
   }));
 
   return (
     <div className="min-h-screen bg-[#060912] text-white">
 
-      {/* Background glows */}
+      {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] h-[700px] w-[700px] rounded-full bg-indigo-600/10 blur-[150px]" />
         <div className="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-violet-600/10 blur-[130px]" />
@@ -234,186 +147,191 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
             </span>
           </a>
           <div className="flex items-center gap-2">
-            <a
-              href="/dashboard"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
-            >
+            <a href="/dashboard" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
               <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
             </a>
-            <a
-              href="/profile"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
-            >
+            <a href="/profile" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
               <UserIcon className="h-3.5 w-3.5" /> Profile
             </a>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-              aria-label="Sign out"
-            >
+            <button onClick={handleLogout} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors" aria-label="Sign out">
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       </nav>
 
-      <main className="relative pt-20 pb-16 px-6">
-        <div className="mx-auto max-w-7xl">
+      <main className="relative pt-20 pb-16">
+        <div className="mx-auto max-w-7xl px-6">
 
           {/* Welcome */}
-          <div className="mb-8 text-center">
+          <div className="mb-6 text-center">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5">
               <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">
-                Ready to practice?
-              </span>
+              <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Ready to practice?</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
-              Hey, {displayName} 👋
-            </h1>
+            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Hey, {displayName} 👋</h1>
             <p className="mt-1.5 text-sm text-slate-400">
-              Pick an interviewer and a topic — your AI interview starts instantly.
+              Select an interviewer below, then choose your topic to start.
             </p>
           </div>
+        </div>
 
-          {/* ── Carousel ─────────────────────────────────────────── */}
-          {carouselSlides.length > 0 && (
-            <div className="mb-10 overflow-hidden">
-              <p className="mb-4 text-center text-[10px] font-bold tracking-widest text-slate-600 uppercase flex items-center justify-center gap-2">
-                <Users className="h-3 w-3" /> Meet your AI interviewers
-              </p>
-              <div className="relative w-full overflow-hidden py-8">
-                <Carousel slides={carouselSlides} />
-              </div>
-            </div>
-          )}
+        {/* ── Carousel — full-width section with overflow visible ── */}
+        {carouselSlides.length > 0 && (
+          <div className="mb-8">
+            <p className="mb-3 text-center text-[10px] font-bold tracking-widest text-slate-600 uppercase flex items-center justify-center gap-2">
+              <Users className="h-3 w-3" /> Choose your interviewer
+            </p>
+            <Carousel
+              slides={carouselSlides}
+              initialIndex={Math.min(1, carouselSlides.length - 1)}
+              onSlideChange={handleCarouselChange}
+            />
+          </div>
+        )}
 
-          {/* ── Two-column: cards + topic/start ──────────────────── */}
-          <div className="grid gap-8 lg:grid-cols-[1fr_380px] items-start">
-
-            {/* ── Interviewer ID Cards ─────────────────────────── */}
-            <div>
-              <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
-                <Users className="h-3.5 w-3.5" />
-                Choose Your Interviewer
-                {selectedInterviewer && (
-                  <span className="ml-auto text-[10px] font-semibold text-indigo-400 normal-case tracking-normal">
-                    {selectedInterviewer.name} selected
-                  </span>
-                )}
-              </h2>
-
-              {interviewers.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
-                  <Users className="mx-auto mb-3 h-8 w-8 text-slate-700" />
-                  <p className="text-sm text-slate-600">No interviewers available yet.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-3">
-                  {interviewers.map((iv, i) => (
-                    <InterviewerCard
-                      key={iv.id}
-                      interviewer={iv}
-                      index={i}
-                      selected={selectedInterviewer?.id === iv.id}
-                      onSelect={() => setSelectedInterviewer(iv)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ── Topic + Start ────────────────────────────────── */}
-            <div className="space-y-5 lg:sticky lg:top-24">
-              <div>
-                <h2 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
-                  <Target className="h-3.5 w-3.5" />
-                  Choose a Topic
-                </h2>
-
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setTopicDropdown(!topicDropdown)}
-                    className={`flex w-full items-center justify-between rounded-xl border bg-white/[0.03] px-4 py-3 text-sm transition-all ${
-                      topicDropdown
-                        ? "border-indigo-500/50 ring-2 ring-indigo-500/20"
-                        : "border-white/10 hover:border-white/20"
-                    }`}
-                    aria-expanded={topicDropdown}
-                  >
-                    <span className={selectedTopic ? "text-white" : "text-slate-500"}>
-                      {selectedTopic ? selectedTopic.name : "Select an interview topic…"}
-                    </span>
-                    <ChevronDown
-                      className={`h-4 w-4 text-slate-500 transition-transform ${topicDropdown ? "rotate-180" : ""}`}
-                    />
-                  </button>
-
-                  {topicDropdown && (
-                    <>
-                      <div className="absolute top-full left-0 right-0 z-20 mt-2 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-[#0d1117] shadow-2xl shadow-black/50">
-                        {Object.entries(groupedTopics).map(([category, catTopics]) => (
-                          <div key={category}>
-                            <div
-                              className={`sticky top-0 px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase bg-[#0d1117] ${
-                                CATEGORY_COLOURS[category] ?? "text-slate-500"
-                              }`}
-                            >
-                              {category}
-                            </div>
-                            {catTopics.map((t) => (
-                              <button
-                                key={t.id}
-                                onClick={() => { setSelectedTopic(t); setTopicDropdown(false); }}
-                                className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
-                                  selectedTopic?.id === t.id ? "bg-indigo-500/10 text-indigo-300" : "text-slate-300"
-                                }`}
-                              >
-                                <span>{t.name}</span>
-                                {selectedTopic?.id === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
-                              </button>
-                            ))}
-                          </div>
-                        ))}
+        {/* ── Selected interviewer detail + Select button ─────────── */}
+        <div className="mx-auto max-w-7xl px-6">
+          {selectedInterviewer && (
+            <div className="mx-auto max-w-xl">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-5 space-y-4">
+                {/* Header row */}
+                <div className="flex items-center gap-4">
+                  <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-lg font-black text-white overflow-hidden shadow-lg`}>
+                    {selectedInterviewer.avatar_url ? (
+                      <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-bold text-white">{selectedInterviewer.name}</h3>
+                    <p className="text-sm text-slate-400">{selectedInterviewer.title}</p>
+                    {selectedInterviewer.company && (
+                      <div className="mt-0.5 flex items-center gap-1">
+                        <Briefcase className="h-3 w-3 text-slate-600" />
+                        <span className="text-xs text-slate-500">{selectedInterviewer.company}</span>
                       </div>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setTopicDropdown(false)}
-                        aria-hidden="true"
-                      />
-                    </>
+                    )}
+                  </div>
+                  {selectedInterviewer.personality && (
+                    <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${personalityStyle}`}>
+                      {selectedInterviewer.personality}
+                    </span>
                   )}
                 </div>
 
-                {selectedTopic?.description && (
-                  <div className="mt-2 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-2.5">
-                    <p className="text-xs leading-relaxed text-slate-500">{selectedTopic.description}</p>
+                {/* Bio */}
+                {selectedInterviewer.bio && (
+                  <p className="text-sm leading-relaxed text-slate-400">{selectedInterviewer.bio}</p>
+                )}
+
+                {/* Specialties */}
+                {selectedInterviewer.specialties?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedInterviewer.specialties.map((s) => (
+                      <span key={s} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-slate-300">
+                        {s}
+                      </span>
+                    ))}
                   </div>
                 )}
+
+                {/* Select button */}
+                <button
+                  onClick={handleSelectInterviewer}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:brightness-110"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Select {selectedInterviewer.name}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* ── Topic Selection Popup ─────────────────────────────────── */}
+      {showPopup && selectedInterviewer && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => { setShowPopup(false); setError(null); }}
+          />
+
+          {/* Modal */}
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl shadow-black/50 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-xs font-bold text-white overflow-hidden`}>
+                  {selectedInterviewer.avatar_url ? (
+                    <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">{selectedInterviewer.name}</p>
+                  <p className="text-xs text-slate-500">{selectedInterviewer.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowPopup(false); setError(null); }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4">
+              <h3 className="flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
+                <Target className="h-3.5 w-3.5" />
+                Choose a Topic
+              </h3>
+
+              {/* Topic list */}
+              <div className="max-h-60 overflow-y-auto rounded-xl border border-white/5 bg-white/[0.02]">
+                {Object.entries(groupedTopics).map(([category, catTopics]) => (
+                  <div key={category}>
+                    <div className={`sticky top-0 z-10 px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase bg-[#0d1117] border-b border-white/5 ${CATEGORY_COLOURS[category] ?? "text-slate-500"}`}>
+                      {category}
+                    </div>
+                    {catTopics.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTopic(t)}
+                        className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
+                          selectedTopic?.id === t.id ? "bg-indigo-500/10 text-indigo-300" : "text-slate-300"
+                        }`}
+                      >
+                        <span>{t.name}</span>
+                        {selectedTopic?.id === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
+                      </button>
+                    ))}
+                  </div>
+                ))}
               </div>
 
+              {/* Topic description */}
+              {selectedTopic?.description && (
+                <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-2.5">
+                  <p className="text-xs leading-relaxed text-slate-500">{selectedTopic.description}</p>
+                </div>
+              )}
+
               {/* Session preview */}
-              {selectedInterviewer && selectedTopic && (
-                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3.5 space-y-2.5">
+              {selectedTopic && (
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 space-y-2">
                   <p className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">Session Preview</p>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${AVATAR_GRADIENTS[selectedIdx % AVATAR_GRADIENTS.length]} text-xs font-bold text-white overflow-hidden`}
-                    >
-                      {selectedInterviewer.avatar_url ? (
-                        <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
-                      ) : (
-                        selectedInterviewer.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{selectedInterviewer.name}</p>
-                      <p className="text-xs text-slate-400">
-                        will interview you on <span className="text-indigo-300">{selectedTopic.name}</span>
-                      </p>
-                    </div>
-                  </div>
+                  <p className="text-sm text-slate-300">
+                    <span className="font-semibold text-white">{selectedInterviewer.name}</span>
+                    {" "}will interview you on{" "}
+                    <span className="text-indigo-300">{selectedTopic.name}</span>
+                  </p>
                   <div className="flex items-center gap-3 text-xs text-slate-500">
                     <Mic className="h-3.5 w-3.5 text-indigo-400" />
                     <span>Voice + text</span>
@@ -423,15 +341,17 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                 </div>
               )}
 
+              {/* Error */}
               {error && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                   {error}
                 </div>
               )}
 
+              {/* Start button */}
               <button
                 onClick={handleStartInterview}
-                disabled={!selectedInterviewer || !selectedTopic || starting}
+                disabled={!selectedTopic || starting}
                 className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-indigo-600/30 transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {starting ? (
@@ -440,15 +360,10 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                   <><Play className="h-4 w-4 fill-white" /> Start Interview</>
                 )}
               </button>
-
-              <p className="text-center text-xs text-slate-600">
-                Recorded (audio + text) for performance analysis.
-              </p>
             </div>
-
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }
