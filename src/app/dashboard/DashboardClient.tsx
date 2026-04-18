@@ -422,8 +422,8 @@ export default function DashboardClient({
                         </div>
                       </div>
 
-                      {/* Interviewer avatar + date */}
-                      <div className="flex flex-col items-center gap-1 shrink-0">
+                      {/* Interviewer avatar + name + date */}
+                      <div className="flex flex-col items-center gap-0.5 shrink-0">
                         {avatarPath ? (
                           <Image
                             src={avatarPath}
@@ -437,6 +437,9 @@ export default function DashboardClient({
                             {(s.interviewers?.name ?? "AI").split(" ").map(w => w[0]).join("").slice(0, 2)}
                           </div>
                         )}
+                        <span className="text-[10px] font-medium text-slate-400 max-w-[60px] truncate text-center">
+                          {s.interviewers?.name?.split(" ")[0] ?? "AI"}
+                        </span>
                         <span className="text-[10px] text-slate-600">{formatDate(s.started_at)}</span>
                       </div>
                     </div>
