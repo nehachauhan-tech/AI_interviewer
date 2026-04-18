@@ -7,8 +7,10 @@ import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import {
   BrainCircuit, User as UserIcon, Phone, GraduationCap,
-  Camera, Loader2, CheckCircle2, ArrowRight, LayoutDashboard, Home
+  Camera, Loader2, CheckCircle2, ArrowRight, LayoutDashboard, Home,
+  FileText, Upload, Trash2, Sparkles, Briefcase, Code2, FolderOpen, Award
 } from "lucide-react";
+import type { ResumeAnalysis } from "@/lib/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -28,8 +30,16 @@ export default function ProfileForm({ user, profile }: Props) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  const [resumeUrl, setResumeUrl] = useState(profile?.resume_url ?? "");
+  const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysis | null>(
+    (profile?.resume_analysis as ResumeAnalysis) ?? null
+  );
+  const resumeRef = useRef<HTMLInputElement>(null);
+
   const [isPending, startTransition] = useTransition();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [analyzingResume, setAnalyzingResume] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -62,6 +72,75 @@ export default function ProfileForm({ user, profile }: Props) {
     setUploadingAvatar(false);
   }
 
+  async function handleResumeUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      setError("Only PDF files are accepted");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Resume must be under 5 MB");
+      return;
+    }
+
+    setUploadingResume(true);
+    setError(null);
+
+    const path = `${user.id}/${Date.now()}_resume.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from("resumes")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      setError("Resume upload failed: " + uploadError.message);
+      setUploadingResume(false);
+      return;
+    }
+
+    setResumeUrl(path);
+    setUploadingResume(false);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("profiles").update({ resume_url: path }).eq("id", user.id);
+
+    setAnalyzingResume(true);
+    try {
+      const res = await fetch("/api/resume/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeUrl: path }),
+      });
+      const data = await res.json();
+      if (data.success && data.analysis) {
+        setResumeAnalysis(data.analysis);
+      } else {
+        setError(data.error || "Resume analysis failed");
+      }
+    } catch {
+      setError("Failed to analyze resume");
+    } finally {
+      setAnalyzingResume(false);
+    }
+  }
+
+  async function handleRemoveResume() {
+    if (!resumeUrl) return;
+    setError(null);
+
+    await supabase.storage.from("resumes").remove([resumeUrl]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from("profiles")
+      .update({ resume_url: null, resume_analysis: null })
+      .eq("id", user.id);
+
+    setResumeUrl("");
+    setResumeAnalysis(null);
+    if (resumeRef.current) resumeRef.current.value = "";
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -75,6 +154,8 @@ export default function ProfileForm({ user, profile }: Props) {
         qualification,
         contact_number: contactNumber,
         avatar_url: avatarUrl || null,
+        resume_url: resumeUrl || null,
+        resume_analysis: resumeAnalysis || null,
       });
 
       if (error) {
@@ -242,6 +323,169 @@ export default function ProfileForm({ user, profile }: Props) {
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-sm text-slate-500">
                   {user.email}
                 </div>
+              </div>
+
+              {/* ─── Resume Upload Section ─── */}
+              <div className="border-t border-white/10 pt-7">
+                <div className="mb-4 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-indigo-400" />
+                  <h2 className="text-sm font-semibold text-slate-300">Resume</h2>
+                  <span className="text-xs text-slate-500">(PDF, max 5 MB)</span>
+                </div>
+
+                {!resumeUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => resumeRef.current?.click()}
+                    disabled={uploadingResume}
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-sm text-slate-400 transition-all hover:border-indigo-500/40 hover:bg-indigo-500/5 hover:text-indigo-300"
+                  >
+                    {uploadingResume ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Upload className="h-5 w-5" />
+                    )}
+                    {uploadingResume ? "Uploading..." : "Click to upload your resume"}
+                  </button>
+                ) : (
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10">
+                          <FileText className="h-5 w-5 text-indigo-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">Resume uploaded</p>
+                          <p className="text-xs text-slate-500">PDF document</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveResume}
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-500/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Remove
+                      </button>
+                    </div>
+
+                    {analyzingResume && (
+                      <div className="mt-4 flex items-center gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
+                        <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
+                        <span className="text-sm text-indigo-300">
+                          AI is analyzing your resume...
+                        </span>
+                      </div>
+                    )}
+
+                    {resumeAnalysis && !analyzingResume && (
+                      <div className="mt-4 space-y-4">
+                        <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5">
+                          <Sparkles className="h-4 w-4 text-emerald-400" />
+                          <span className="text-sm font-medium text-emerald-300">
+                            AI Analysis Complete
+                          </span>
+                        </div>
+
+                        <p className="text-sm leading-relaxed text-slate-300">
+                          {resumeAnalysis.summary}
+                        </p>
+
+                        {resumeAnalysis.skills.length > 0 && (
+                          <div>
+                            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                              <Code2 className="h-3.5 w-3.5" /> Skills
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {resumeAnalysis.skills.map((skill) => (
+                                <span
+                                  key={skill}
+                                  className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-300"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {resumeAnalysis.experience.length > 0 && (
+                          <div>
+                            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                              <Briefcase className="h-3.5 w-3.5" /> Experience
+                            </div>
+                            <div className="space-y-2">
+                              {resumeAnalysis.experience.map((exp, i) => (
+                                <div
+                                  key={i}
+                                  className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5"
+                                >
+                                  <p className="text-sm font-medium text-white">{exp.title}</p>
+                                  <p className="text-xs text-slate-400">
+                                    {exp.company} &middot; {exp.duration}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {resumeAnalysis.projects.length > 0 && (
+                          <div>
+                            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                              <FolderOpen className="h-3.5 w-3.5" /> Projects
+                            </div>
+                            <div className="space-y-2">
+                              {resumeAnalysis.projects.map((proj, i) => (
+                                <div
+                                  key={i}
+                                  className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5"
+                                >
+                                  <p className="text-sm font-medium text-white">{proj.name}</p>
+                                  <p className="text-xs text-slate-400">{proj.description}</p>
+                                  {proj.technologies.length > 0 && (
+                                    <div className="mt-1.5 flex flex-wrap gap-1">
+                                      {proj.technologies.map((t) => (
+                                        <span
+                                          key={t}
+                                          className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-400"
+                                        >
+                                          {t}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {resumeAnalysis.certifications.length > 0 && (
+                          <div>
+                            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                              <Award className="h-3.5 w-3.5" /> Certifications
+                            </div>
+                            <ul className="space-y-1">
+                              {resumeAnalysis.certifications.map((cert) => (
+                                <li key={cert} className="text-xs text-slate-300">
+                                  &bull; {cert}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <input
+                  ref={resumeRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleResumeUpload}
+                />
               </div>
 
               {/* Error */}

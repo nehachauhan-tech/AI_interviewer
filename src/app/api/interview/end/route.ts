@@ -84,7 +84,19 @@ export async function POST(request: Request) {
     .update({ transcript_file_path: transcriptPath })
     .eq("id", sessionId);
 
-  // 5. Run Gemini 3.1 Pro analysis
+  // 5. Fetch resume analysis for richer scoring context
+  const { data: profileData } = await db
+    .from("profiles")
+    .select("resume_analysis")
+    .eq("id", user.id)
+    .single();
+
+  const resumeContext =
+    profileData?.resume_analysis
+      ? `\n\nCANDIDATE RESUME CONTEXT (use this to judge whether the candidate demonstrated knowledge consistent with their claimed experience):\n${JSON.stringify(profileData.resume_analysis, null, 2)}`
+      : "";
+
+  // 6. Run Gemini 3.1 Pro analysis
   let analysisTriggered = false;
 
   try {
@@ -95,7 +107,7 @@ export async function POST(request: Request) {
     const analysisModel =
       process.env.GEMINI_ANALYSIS_MODEL ?? "gemini-3.1-pro-preview";
 
-    const analysisPrompt = `You are an expert interview coach. Analyse the following interview transcript and return ONLY a valid JSON object (no markdown fences, no extra text) with these exact keys:
+    const analysisPrompt = `You are an expert interview coach. Analyse the following interview transcript and return ONLY a valid JSON object (no markdown fences, no extra text) with these exact keys:${resumeContext}
 
 {
   "overall_score": <number 0-100>,

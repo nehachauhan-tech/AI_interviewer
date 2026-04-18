@@ -21,5 +21,17 @@ export default async function InterviewPage({ params }: Props) {
 
   if (!session) notFound();
 
-  return <InterviewRoom user={user} session={session} />;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("resume_analysis")
+    .eq("id", user.id)
+    .single();
+
+  return (
+    <InterviewRoom
+      user={user}
+      session={session}
+      resumeAnalysis={profile?.resume_analysis ?? null}
+    />
+  );
 }

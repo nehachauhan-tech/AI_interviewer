@@ -53,9 +53,18 @@ interface SessionData {
   interview_topics: { name: string; category: string } | null;
 }
 
+interface ResumeContext {
+  summary: string;
+  skills: string[];
+  experience: { title: string; company: string; duration: string }[];
+  projects: { name: string; description: string; technologies: string[] }[];
+  areas_to_explore: string[];
+}
+
 interface Props {
   user: User;
   session: SessionData;
+  resumeAnalysis?: ResumeContext | null;
 }
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
@@ -355,7 +364,7 @@ function VoiceVisualizer({ active, color = "indigo" }: { active: boolean; color?
 
 /* ══════════════════════════ Main Component ═══════════════════════════ */
 
-export default function InterviewRoom({ user, session }: Props) {
+export default function InterviewRoom({ user, session, resumeAnalysis }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -401,10 +410,38 @@ export default function InterviewRoom({ user, session }: Props) {
   const systemInstruction = useCallback(() => {
     const personality = interviewer?.personality ?? "professional and friendly";
     const specialties = interviewer?.specialties?.join(", ") ?? "general topics";
+
+    let resumeSection = "";
+    if (resumeAnalysis) {
+      const expList = resumeAnalysis.experience
+        .map((e) => `${e.title} at ${e.company} (${e.duration})`)
+        .join("; ");
+      const projList = resumeAnalysis.projects
+        .map((p) => `${p.name} — ${p.description}`)
+        .join("; ");
+      const areasToProbe = resumeAnalysis.areas_to_explore.join("; ");
+
+      resumeSection = `
+
+CANDIDATE RESUME CONTEXT:
+- Summary: ${resumeAnalysis.summary}
+- Skills: ${resumeAnalysis.skills.join(", ")}
+- Experience: ${expList || "Not specified"}
+- Projects: ${projList || "Not specified"}
+- Areas to probe deeper: ${areasToProbe || "None identified"}
+
+RESUME-BASED INSTRUCTIONS:
+- Use the candidate's resume to tailor your questions. Reference their specific projects, skills, and experience.
+- Ask about technologies they claim to know — verify depth, not just surface familiarity.
+- Probe the "areas to explore" identified in the analysis — these are gaps or vague claims worth clarifying.
+- Mix resume-based questions with general topic questions. Roughly 60% resume-based, 40% topic-based.
+- Do NOT read the resume back to the candidate. Ask questions that test real understanding.`;
+    }
+
     return `You are ${interviewer?.name ?? "an AI interviewer"}, ${interviewer?.title ?? "a professional interviewer"}. Your personality is: ${personality}. Your specialties include: ${specialties}.
 
 You are conducting a mock interview on the topic: "${topic?.name ?? "general"}".
-Category: ${topic?.category ?? "General"}.
+Category: ${topic?.category ?? "General"}.${resumeSection}
 
 Guidelines:
 - Ask one question at a time and wait for the candidate's response.
@@ -416,7 +453,7 @@ Guidelines:
 - Do NOT break character. You are the interviewer, not an AI assistant.
 
 Begin by greeting the candidate and asking them to introduce themselves.`;
-  }, [interviewer, topic]);
+  }, [interviewer, topic, resumeAnalysis]);
 
   // ── Connect to Gemini Live on mount ──
   useEffect(() => {

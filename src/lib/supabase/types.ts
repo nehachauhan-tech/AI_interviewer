@@ -9,6 +9,33 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type ResumeAnalysis = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  summary: string;
+  skills: string[];
+  experience: {
+    title: string;
+    company: string;
+    duration: string;
+    highlights: string[];
+  }[];
+  education: {
+    degree: string;
+    institution: string;
+    year: string;
+  }[];
+  projects: {
+    name: string;
+    description: string;
+    technologies: string[];
+  }[];
+  certifications: string[];
+  strengths: string[];
+  areas_to_explore: string[];
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -19,6 +46,8 @@ export type Database = {
           qualification: string | null;
           contact_number: string | null;
           avatar_url: string | null;
+          resume_url: string | null;
+          resume_analysis: ResumeAnalysis | null;
           created_at: string;
           updated_at: string;
         };
@@ -28,12 +57,16 @@ export type Database = {
           qualification?: string | null;
           contact_number?: string | null;
           avatar_url?: string | null;
+          resume_url?: string | null;
+          resume_analysis?: ResumeAnalysis | null;
         };
         Update: {
           full_name?: string | null;
           qualification?: string | null;
           contact_number?: string | null;
           avatar_url?: string | null;
+          resume_url?: string | null;
+          resume_analysis?: ResumeAnalysis | null;
           updated_at?: string;
         };
       };
