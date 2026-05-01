@@ -21,13 +21,13 @@ export default async function DashboardPage() {
       .select("*, interviewers(name, title, avatar_url), interview_topics(name, category)")
       .eq("user_id", user.id)
       .order("started_at", { ascending: false })
-      .limit(10),
+      .limit(50),
     supabase
       .from("session_analyses")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(50),
     supabase.from("interviewers").select("id, name, avatar_url"),
   ]);
 
