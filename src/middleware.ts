@@ -30,9 +30,13 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session — IMPORTANT: do not add logic between createServerClient
   // and supabase.auth.getUser(), it could break session refresh.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userResult = await Promise.race([
+    supabase.auth.getUser(),
+    new Promise<{ data: { user: null } }>((resolve) =>
+      setTimeout(() => resolve({ data: { user: null } }), 5000)
+    ),
+  ]);
+  const { data: { user } } = userResult as Awaited<ReturnType<typeof supabase.auth.getUser>>;
 
   const pathname = request.nextUrl.pathname;
 
