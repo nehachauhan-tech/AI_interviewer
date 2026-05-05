@@ -64,7 +64,7 @@ function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
               href={ctaHref}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-8 text-base font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:brightness-110 sm:w-auto"
             >
-              {isLoggedIn ? "Go to Dashboard" : "Start Free Interview"}
+              {isLoggedIn ? "Let's Get Started" : "Start Free Interview"}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
             <a
@@ -501,7 +501,7 @@ function CTA({ isLoggedIn }: { isLoggedIn: boolean }) {
               href={ctaHref}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-8 text-base font-semibold text-primary shadow-lg transition-all hover:bg-white/90 hover:shadow-xl sm:w-auto"
             >
-              {isLoggedIn ? "Go to Dashboard" : "Start Free Interview"}
+              {isLoggedIn ? "Let's Get Started" : "Start Free Interview"}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
             <a
