@@ -9,6 +9,12 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type TranscriptMessage = {
+  role: "interviewer" | "user";
+  content: string;
+  timestamp: string;
+};
+
 export type ResumeAnalysis = {
   name: string;
   email: string | null;
@@ -110,6 +116,7 @@ export type Database = {
           audio_file_path: string | null;
           audio_file_size: number | null;
           transcript_file_path: string | null;
+          transcript_json: TranscriptMessage[] | null;
           created_at: string;
           updated_at: string;
         };

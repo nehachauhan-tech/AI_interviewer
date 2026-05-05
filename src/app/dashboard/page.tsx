@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     supabase.from("user_dashboard_stats").select("*").eq("user_id", user.id).single(),
     supabase
       .from("interview_sessions")
-      .select("*, interviewers(name, title, avatar_url), interview_topics(name, category)")
+      .select("*, interviewers(name, title, avatar_url), interview_topics(name, category), transcript_json")
       .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(50),

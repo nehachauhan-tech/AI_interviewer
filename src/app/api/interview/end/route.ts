@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   // 2. Fetch all messages for the transcript
   const { data: messages } = await db
     .from("session_messages")
-    .select("role, content, sequence_no")
+    .select("role, content, sequence_no, created_at")
     .eq("session_id", sessionId)
     .order("sequence_no");
 
@@ -64,27 +64,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, analysisTriggered: false });
   }
 
-  // 3. Build plain text transcript
+  // 3. Build transcript JSON array (for fast loading in dashboard)
+  const transcriptJson = (messages as { role: string; content: string; created_at: string }[])
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role as "interviewer" | "user",
+      content: m.content,
+      timestamp: m.created_at,
+    }));
+
+  // 4. Build plain text transcript for AI analysis
   const transcript = (messages as { role: string; content: string }[])
     .map((m) => `[${m.role.toUpperCase()}]: ${m.content}`)
     .join("\n\n");
 
-  // 4. Upload transcript to Storage
-  const transcriptPath = `${user.id}/${sessionId}/transcript.txt`;
-  await supabase.storage
-    .from("interview-transcripts")
-    .upload(
-      transcriptPath,
-      new Blob([transcript], { type: "text/plain" }),
-      { upsert: true }
-    );
-
+  // 5. Save transcript JSON directly to the session table
   await db
     .from("interview_sessions")
-    .update({ transcript_file_path: transcriptPath })
+    .update({ transcript_json: transcriptJson })
     .eq("id", sessionId);
 
-  // 5. Fetch resume analysis for richer scoring context
+  // 6. Fetch resume analysis for richer scoring context
   const { data: profileData } = await db
     .from("profiles")
     .select("resume_analysis")
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       ? `\n\nCANDIDATE RESUME CONTEXT (use this to judge whether the candidate demonstrated knowledge consistent with their claimed experience):\n${JSON.stringify(profileData.resume_analysis, null, 2)}`
       : "";
 
-  // 6. Run Gemini 3.1 Pro analysis
+  // 7. Run Gemini 3.1 Pro analysis
   let analysisTriggered = false;
 
   try {
@@ -184,6 +184,5 @@ ${transcript}`;
   return NextResponse.json({
     success: true,
     analysisTriggered,
-    transcriptPath,
   });
 }

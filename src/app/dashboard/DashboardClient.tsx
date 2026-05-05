@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import type { User } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
+import type { Database, TranscriptMessage } from "@/lib/supabase/types";
 import {
   BrainCircuit, Home, User as UserIcon,
   TrendingDown, TrendingUp, CheckCircle2,
@@ -19,7 +19,6 @@ import {
 type Profile  = Database["public"]["Tables"]["profiles"]["Row"];
 type Stats    = Database["public"]["Views"]["user_dashboard_stats"]["Row"];
 type Analysis = Database["public"]["Tables"]["session_analyses"]["Row"];
-type Message  = Database["public"]["Tables"]["session_messages"]["Row"];
 
 interface SessionRow {
   id: string;
@@ -29,6 +28,7 @@ interface SessionRow {
   duration_secs: number | null;
   interviewers: { name: string; title: string; avatar_url: string | null } | null;
   interview_topics: { name: string; category: string } | null;
+  transcript_json: TranscriptMessage[] | null;
 }
 
 interface Props {
@@ -129,16 +129,16 @@ function AnimatedBar({ label, value, colour, icon: Icon, delay = 0 }: {
   const val = value ?? 0;
 
   return (
-    <div ref={barRef} className="group flex items-center gap-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0" style={{ background: `${colour}20` }}>
-        <Icon className="h-5 w-5" style={{ color: colour }} />
+    <div ref={barRef} className="group flex items-center gap-3">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0" style={{ background: `${colour}20` }}>
+        <Icon className="h-4 w-4" style={{ color: colour }} />
       </div>
       <div className="flex-1">
-        <div className="flex justify-between mb-2">
-          <span className="text-base text-slate-300 group-hover:text-white transition-colors">{label}</span>
-          <span className="text-base font-bold" style={{ color: colour }}>{val}</span>
+        <div className="flex justify-between mb-1">
+          <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{label}</span>
+          <span className="text-sm font-semibold" style={{ color: colour }}>{val}</span>
         </div>
-        <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+        <div className="h-2 rounded-full bg-white/5 overflow-hidden">
           <div
             className="h-full rounded-full transition-all ease-out"
             style={{
@@ -156,7 +156,7 @@ function AnimatedBar({ label, value, colour, icon: Icon, delay = 0 }: {
 
 /* ─── Score Ring ─────────────────────────────────────────── */
 
-function ScoreRing({ score, size = 60 }: { score: number | null | undefined; size?: number }) {
+function ScoreRing({ score, size = 48 }: { score: number | null | undefined; size?: number }) {
   const r = size * 0.38;
   const circ = 2 * Math.PI * r;
   const val = score ?? 0;
@@ -165,14 +165,14 @@ function ScoreRing({ score, size = 60 }: { score: number | null | undefined; siz
   return (
     <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
       <svg className="-rotate-90 absolute inset-0" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
         <circle
           cx={size/2} cy={size/2} r={r}
-          fill="none" stroke={color} strokeWidth="4" strokeLinecap="round"
+          fill="none" stroke={color} strokeWidth="3" strokeLinecap="round"
           strokeDasharray={`${(val/100)*circ} ${circ}`}
         />
       </svg>
-      <span className="relative text-sm font-black" style={{ color }}>{score ?? "—"}</span>
+      <span className="relative text-xs font-bold" style={{ color }}>{score ?? "—"}</span>
     </div>
   );
 }
@@ -183,13 +183,13 @@ function StatCard({ icon: Icon, label, value, color }: {
   icon: React.ElementType; label: string; value: string | number; color: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-5 py-4 hover:border-white/12 hover:bg-white/[0.06] transition-all">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl shrink-0" style={{ background: `${color}20` }}>
-        <Icon className="h-6 w-6" style={{ color }} />
+    <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 hover:border-white/12 hover:bg-white/[0.06] transition-all">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0" style={{ background: `${color}20` }}>
+        <Icon className="h-5 w-5" style={{ color }} />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-400 mb-1">{label}</p>
-        <p className="text-2xl font-black text-white leading-none">{value}</p>
+        <p className="text-xs font-medium text-slate-400 mb-0.5">{label}</p>
+        <p className="text-xl font-bold text-white leading-none">{value}</p>
       </div>
     </div>
   );
@@ -200,7 +200,6 @@ function StatCard({ icon: Icon, label, value, color }: {
 interface DetailProps {
   session: SessionRow;
   analysis: Analysis | null;
-  messages: Message[];
   profile: Profile | null;
   onClose: () => void;
   interviewerAvatars: Record<string, string>;
@@ -208,8 +207,8 @@ interface DetailProps {
   isReanalyzing: boolean;
 }
 
-function SessionDetailDrawer({ session, analysis, messages, profile, onClose, interviewerAvatars, onReanalyze, isReanalyzing }: DetailProps) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+function SessionDetailDrawer({ session, analysis, profile, onClose, interviewerAvatars, onReanalyze, isReanalyzing }: DetailProps) {
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -226,9 +225,7 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
   const CategoryIcon = CATEGORY_ICONS[session.interview_topics?.category ?? ""] ?? Puzzle;
   const catColor = CATEGORY_COLORS[session.interview_topics?.category ?? ""] ?? "#6366f1";
 
-  const conversation = messages
-    .filter(m => m.role !== "system")
-    .sort((a, b) => a.sequence_no - b.sequence_no);
+  const conversation = session.transcript_json ?? [];
 
   const userName = profile?.full_name ?? "You";
   const userInitials = userName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -239,26 +236,26 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
       <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       <div
-        className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-[720px] flex-col bg-[#0c0f18] border-l border-white/10 shadow-2xl"
+        className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-[600px] flex-col bg-[#0c0f18] border-l border-white/10 shadow-2xl"
         style={{ animation: "slideIn .28s cubic-bezier(.16,1,.3,1)" }}
       >
         {/* Header */}
-        <div className="flex items-center gap-4 px-6 py-5 border-b border-white/8 shrink-0">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8 shrink-0">
           <button
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-white/10 hover:text-white transition-all shrink-0"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-all shrink-0"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-white truncate">
+            <h2 className="text-sm font-bold text-white truncate">
               {session.interview_topics?.name ?? "Interview Session"}
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-xs text-slate-400 mt-0.5">
               {formatFullDate(session.started_at)} at {formatTime(session.started_at)}
             </p>
           </div>
-          <span className={`rounded-full px-3 py-1.5 text-sm font-bold capitalize shrink-0 ${
+          <span className={`rounded-full px-2 py-1 text-xs font-semibold capitalize shrink-0 ${
             session.status === "completed"   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
             session.status === "in_progress" ? "bg-amber-500/20  text-amber-400  border border-amber-500/30"  :
                                                "bg-slate-500/20  text-slate-400  border border-slate-500/25"
@@ -270,48 +267,48 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
           {/* Quick info bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/6 bg-white/[0.02]">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-300">{formatDuration(session.duration_secs)}</span>
+          <div className="flex items-center justify-between px-5 py-3 border-b border-white/6 bg-white/[0.02]">
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-slate-500" />
+                <span className="text-xs text-slate-300">{formatDuration(session.duration_secs)}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <CategoryIcon className="h-4 w-4" style={{ color: catColor }} />
-                <span className="text-sm text-slate-300">{session.interview_topics?.category ?? "General"}</span>
+              <div className="flex items-center gap-1.5">
+                <CategoryIcon className="h-3.5 w-3.5" style={{ color: catColor }} />
+                <span className="text-xs text-slate-300">{session.interview_topics?.category ?? "General"}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4" style={{ color: scoreColor(analysis?.overall_score) }} />
-                <span className="text-sm font-bold" style={{ color: scoreColor(analysis?.overall_score) }}>
+              <div className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5" style={{ color: scoreColor(analysis?.overall_score) }} />
+                <span className="text-xs font-semibold" style={{ color: scoreColor(analysis?.overall_score) }}>
                   {analysis?.overall_score ?? "—"}/100
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="px-6 py-6 space-y-8">
+          <div className="px-5 py-5 space-y-6">
 
             {/* Interviewer info */}
-            <div className="flex items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+            <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-4">
               {avatarPath ? (
-                <Image src={avatarPath} alt={session.interviewers?.name ?? ""} width={56} height={56}
-                  className="h-14 w-14 rounded-full object-cover border-2 border-white/15 shrink-0" />
+                <Image src={avatarPath} alt={session.interviewers?.name ?? ""} width={44} height={44}
+                  className="h-11 w-11 rounded-full object-cover border-2 border-white/15 shrink-0" />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/20 text-lg font-bold text-indigo-400 border-2 border-white/15 shrink-0">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-bold text-indigo-400 border-2 border-white/15 shrink-0">
                   {(session.interviewers?.name ?? "AI").split(" ").map(w => w[0]).join("").slice(0, 2)}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-lg font-semibold text-white">{session.interviewers?.name ?? "AI Interviewer"}</p>
-                <p className="text-sm text-slate-400">{session.interviewers?.title ?? "AI Interviewer"}</p>
+                <p className="text-sm font-semibold text-white">{session.interviewers?.name ?? "AI Interviewer"}</p>
+                <p className="text-xs text-slate-400">{session.interviewers?.title ?? "AI Interviewer"}</p>
               </div>
             </div>
 
             {/* Performance scores */}
             {analysis && (
               <section>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Performance Scores</h3>
-                <div className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Performance</h3>
+                <div className="space-y-3">
                   <AnimatedBar label="Technical"       value={analysis.technical_score}       colour="#6366f1" icon={Monitor}        delay={0} />
                   <AnimatedBar label="Communication"   value={analysis.communication_score}   colour="#22c55e" icon={MessagesSquare}  delay={80} />
                   <AnimatedBar label="Confidence"      value={analysis.confidence_score}      colour="#f59e0b" icon={Shield}          delay={160} />
@@ -322,70 +319,72 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
 
             {/* Conversation transcript */}
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Conversation</h3>
-                <span className="text-sm text-slate-500">{conversation.length} messages</span>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Conversation</h3>
+                <span className="text-xs text-slate-500">{conversation.length} messages</span>
               </div>
 
               {conversation.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center">
-                  <MessageSquare className="mx-auto mb-3 h-10 w-10 text-slate-600" />
-                  <p className="text-base text-slate-400">No transcript available for this session.</p>
+                <div className="rounded-xl border border-dashed border-white/15 p-8 text-center">
+                  <MessageSquare className="mx-auto mb-2 h-8 w-8 text-slate-600" />
+                  <p className="text-sm text-slate-400">No transcript available for this session.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {conversation.map((msg) => {
+                <div className="space-y-3">
+                  {conversation.map((msg, idx) => {
                     const isBot = msg.role === "interviewer";
-                    const isExp = expanded === msg.id;
-                    const isLong = msg.content.length > 200;
+                    const isExp = expanded === idx;
+                    const isLong = msg.content.length > 180;
 
                     return (
                       <div
-                        key={msg.id}
-                        className={`rounded-2xl border p-5 transition-colors ${
+                        key={idx}
+                        className={`rounded-xl border p-4 transition-colors ${
                           isBot
                             ? "border-indigo-500/20 bg-indigo-500/[0.06]"
                             : "border-emerald-500/20 bg-emerald-500/[0.05]"
                         }`}
                       >
                         {/* Speaker row */}
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
                           {isBot ? (
                             avatarPath ? (
-                              <Image src={avatarPath} alt={session.interviewers?.name ?? "AI"} width={32} height={32}
-                                className="h-8 w-8 rounded-full object-cover border border-indigo-500/40 shrink-0" />
+                              <Image src={avatarPath} alt={session.interviewers?.name ?? "AI"} width={24} height={24}
+                                className="h-6 w-6 rounded-full object-cover border border-indigo-500/40 shrink-0" />
                             ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/30 shrink-0">
-                                <Bot className="h-4 w-4 text-indigo-400" />
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/30 shrink-0">
+                                <Bot className="h-3 w-3 text-indigo-400" />
                               </div>
                             )
                           ) : (
                             userAvatar ? (
-                              <Image src={userAvatar} alt={userName} width={32} height={32}
-                                className="h-8 w-8 rounded-full object-cover border border-emerald-500/40 shrink-0" />
+                              <Image src={userAvatar} alt={userName} width={24} height={24}
+                                className="h-6 w-6 rounded-full object-cover border border-emerald-500/40 shrink-0" />
                             ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/25 text-xs font-bold text-emerald-400 shrink-0">
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/25 text-[10px] font-bold text-emerald-400 shrink-0">
                                 {userInitials}
                               </div>
                             )
                           )}
-                          <span className={`text-base font-semibold ${isBot ? "text-indigo-400" : "text-emerald-400"}`}>
+                          <span className={`text-xs font-semibold ${isBot ? "text-indigo-400" : "text-emerald-400"}`}>
                             {isBot ? (session.interviewers?.name ?? "Interviewer") : userName}
                           </span>
-                          <span className="text-sm text-slate-500 ml-auto">{formatTime(msg.created_at)}</span>
+                          {msg.timestamp && (
+                            <span className="text-[10px] text-slate-500 ml-auto">{formatTime(msg.timestamp)}</span>
+                          )}
                         </div>
 
                         {/* Content */}
-                        <p className={`text-base text-slate-200 leading-relaxed ${!isExp && isLong ? "line-clamp-3" : ""}`}>
+                        <p className={`text-sm text-slate-200 leading-relaxed ${!isExp && isLong ? "line-clamp-3" : ""}`}>
                           {msg.content}
                         </p>
 
                         {isLong && (
                           <button
-                            onClick={() => setExpanded(isExp ? null : msg.id)}
-                            className="mt-3 flex items-center gap-1.5 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                            onClick={() => setExpanded(isExp ? null : idx)}
+                            className="mt-2 flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
                           >
-                            {isExp ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                             {isExp ? "Show less" : "Read more"}
                           </button>
                         )}
@@ -398,30 +397,30 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
 
             {/* Strengths + Areas to Improve */}
             {analysis && (analysis.strengths?.length || analysis.areas_to_improve?.length) ? (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {analysis.strengths && analysis.strengths.length > 0 && (
-                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-5">
-                    <h4 className="mb-3 text-sm font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" /> Strengths
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
+                    <h4 className="mb-2 text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3 w-3" /> Strengths
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-1.5">
                       {analysis.strengths.map((s, i) => (
-                        <li key={i} className="flex items-start gap-3 text-base text-slate-200">
-                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />{s}
+                        <li key={i} className="flex items-start gap-2 text-xs text-slate-200">
+                          <span className="mt-1.5 h-1 w-1 rounded-full bg-emerald-400 shrink-0" />{s}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 {analysis.areas_to_improve && analysis.areas_to_improve.length > 0 && (
-                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
-                    <h4 className="mb-3 text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                      <Target className="h-4 w-4" /> Areas to Improve
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4">
+                    <h4 className="mb-2 text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Target className="h-3 w-3" /> Areas to Improve
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-1.5">
                       {analysis.areas_to_improve.map((a, i) => (
-                        <li key={i} className="flex items-start gap-3 text-base text-slate-200">
-                          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />{a}
+                        <li key={i} className="flex items-start gap-2 text-xs text-slate-200">
+                          <span className="mt-1.5 h-1 w-1 rounded-full bg-amber-400 shrink-0" />{a}
                         </li>
                       ))}
                     </ul>
@@ -432,14 +431,14 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
 
             {/* Action items */}
             {analysis?.action_items && analysis.action_items.length > 0 && (
-              <section className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.06] p-5">
-                <h4 className="mb-3 text-sm font-bold text-violet-400 uppercase tracking-wider flex items-center gap-2">
-                  <Zap className="h-4 w-4" /> Action Items
+              <section className="rounded-xl border border-violet-500/20 bg-violet-500/[0.06] p-4">
+                <h4 className="mb-2 text-xs font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Zap className="h-3 w-3" /> Action Items
                 </h4>
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {analysis.action_items.map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-base text-slate-200">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500/30 text-sm font-bold text-violet-400 shrink-0">
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-200">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/30 text-[10px] font-bold text-violet-400 shrink-0">
                         {i + 1}
                       </span>
                       {item}
@@ -451,11 +450,11 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
 
             {/* Detailed feedback */}
             {analysis?.detailed_feedback && (
-              <section className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-                <h4 className="mb-3 text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" /> Detailed Feedback
+              <section className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                <h4 className="mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen className="h-3 w-3" /> Detailed Feedback
                 </h4>
-                <p className="text-base leading-relaxed text-slate-300 whitespace-pre-line">
+                <p className="text-xs leading-relaxed text-slate-300 whitespace-pre-line">
                   {analysis.detailed_feedback}
                 </p>
               </section>
@@ -463,23 +462,23 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
 
             {/* Keywords */}
             {analysis && (analysis.keywords_mentioned?.length || analysis.keywords_missed?.length) ? (
-              <section className="space-y-4">
+              <section className="space-y-3">
                 {analysis.keywords_mentioned && analysis.keywords_mentioned.length > 0 && (
                   <div>
-                    <h4 className="mb-3 text-sm font-bold text-slate-400 uppercase tracking-wider">Keywords Used</h4>
-                    <div className="flex flex-wrap gap-2">
+                    <h4 className="mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Keywords Used</h4>
+                    <div className="flex flex-wrap gap-1.5">
                       {analysis.keywords_mentioned.map((k, i) => (
-                        <span key={i} className="rounded-full bg-emerald-500/15 border border-emerald-500/25 px-3 py-1.5 text-sm font-medium text-emerald-400">{k}</span>
+                        <span key={i} className="rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-1 text-[11px] font-medium text-emerald-400">{k}</span>
                       ))}
                     </div>
                   </div>
                 )}
                 {analysis.keywords_missed && analysis.keywords_missed.length > 0 && (
                   <div>
-                    <h4 className="mb-3 text-sm font-bold text-slate-400 uppercase tracking-wider">Keywords Missed</h4>
-                    <div className="flex flex-wrap gap-2">
+                    <h4 className="mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Keywords Missed</h4>
+                    <div className="flex flex-wrap gap-1.5">
                       {analysis.keywords_missed.map((k, i) => (
-                        <span key={i} className="rounded-full bg-red-500/15 border border-red-500/25 px-3 py-1.5 text-sm font-medium text-red-400">{k}</span>
+                        <span key={i} className="rounded-full bg-red-500/15 border border-red-500/25 px-2 py-1 text-[11px] font-medium text-red-400">{k}</span>
                       ))}
                     </div>
                   </div>
@@ -487,29 +486,29 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
               </section>
             ) : null}
 
-            <div className="h-4" />
+            <div className="h-2" />
           </div>
         </div>
 
         {/* Footer with actions */}
-        <div className="px-6 py-5 border-t border-white/8 shrink-0 flex gap-3">
+        <div className="px-5 py-4 border-t border-white/8 shrink-0 flex gap-2">
           <button
             onClick={onReanalyze}
             disabled={isReanalyzing}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] py-3 text-base font-semibold text-white hover:bg-white/[0.1] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.05] py-2.5 text-sm font-medium text-white hover:bg-white/[0.1] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isReanalyzing ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Analyzing...
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Analyzing...
               </>
             ) : (
               <>
-                <RefreshCw className="h-4 w-4" /> Re-run AI Analysis
+                <RefreshCw className="h-3.5 w-3.5" /> Re-analyze
               </>
             )}
           </button>
-          <a href="/home" className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-base font-bold text-white shadow-lg shadow-indigo-600/25 hover:brightness-110 transition-all">
-            <RotateCcw className="h-4 w-4" /> Practice Again
+          <a href="/home" className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 hover:brightness-110 transition-all">
+            <RotateCcw className="h-3.5 w-3.5" /> Practice Again
           </a>
         </div>
       </div>
@@ -524,7 +523,7 @@ function SessionDetailDrawer({ session, analysis, messages, profile, onClose, in
   );
 }
 
-/* ─── Session Card (Simplified) ───────────────────────────────────────── */
+/* ─── Session Card ───────────────────────────────────────── */
 
 function SessionCard({
   session, analysis, interviewerAvatars, onClick,
@@ -542,31 +541,31 @@ function SessionCard({
   return (
     <button
       onClick={onClick}
-      className="group w-full flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-left hover:border-indigo-500/40 hover:bg-white/[0.06] transition-all"
+      className="group w-full flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-left hover:border-indigo-500/40 hover:bg-white/[0.06] transition-all"
     >
       {/* Score ring */}
-      <ScoreRing score={score} size={56} />
+      <ScoreRing score={score} size={44} />
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-base font-semibold text-white truncate mb-1">
+        <p className="text-sm font-semibold text-white truncate mb-0.5">
           {session.interview_topics?.name ?? "Unknown Topic"}
         </p>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <CategoryIcon className="h-4 w-4 shrink-0" style={{ color: catColor }} />
-            <span className="text-sm text-slate-400">{session.interview_topics?.category ?? "General"}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <CategoryIcon className="h-3 w-3 shrink-0" style={{ color: catColor }} />
+            <span className="text-xs text-slate-400">{session.interview_topics?.category ?? "General"}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4 text-slate-500 shrink-0" />
-            <span className="text-sm text-slate-400">{formatDuration(session.duration_secs)}</span>
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-slate-500 shrink-0" />
+            <span className="text-xs text-slate-400">{formatDuration(session.duration_secs)}</span>
           </div>
         </div>
       </div>
 
       {/* Right side */}
-      <div className="flex flex-col items-end gap-2 shrink-0">
-        <span className={`rounded-full px-2.5 py-1 text-xs font-bold capitalize ${
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${
           session.status === "completed"   ? "bg-emerald-500/20 text-emerald-400" :
           session.status === "in_progress" ? "bg-amber-500/20  text-amber-400"  :
                                              "bg-slate-500/20  text-slate-400"
@@ -574,32 +573,30 @@ function SessionCard({
           {session.status.replace("_", " ")}
         </span>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {avatarPath ? (
-            <Image src={avatarPath} alt={session.interviewers?.name ?? ""} width={28} height={28}
-              className="h-7 w-7 rounded-full object-cover border border-white/15" />
+            <Image src={avatarPath} alt={session.interviewers?.name ?? ""} width={22} height={22}
+              className="h-5.5 w-5.5 rounded-full object-cover border border-white/15" />
           ) : (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-400 border border-white/15">
+            <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-indigo-500/20 text-[9px] font-bold text-indigo-400 border border-white/15">
               {(session.interviewers?.name ?? "AI").split(" ").map(w => w[0]).join("").slice(0, 2)}
             </div>
           )}
-          <span className="text-sm text-slate-500">{formatDate(session.started_at)}</span>
+          <span className="text-[11px] text-slate-500">{formatDate(session.started_at)}</span>
         </div>
 
-        <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+        <ChevronRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-indigo-400 transition-colors" />
       </div>
     </button>
   );
 }
 
-/* ─── Main Dashboard (Simplified) ─────────────────────────────────────── */
+/* ─── Main Dashboard ─────────────────────────────────────── */
 
 export default function DashboardClient({ user, profile, stats, recentSessions, analyses, interviewerAvatars }: Props) {
   const supabase = createClient();
 
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null);
-  const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [localAnalyses, setLocalAnalyses] = useState<Analysis[]>(analyses);
 
@@ -607,21 +604,12 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
   const scoreDiff = getScoreDiff(localAnalyses);
   const overallScore = latest?.overall_score ?? 0;
 
-  const openSession = useCallback(async (session: SessionRow) => {
+  const openSession = useCallback((session: SessionRow) => {
     setSelectedSession(session);
-    setLoadingMessages(true);
-    const { data } = await supabase
-      .from("session_messages")
-      .select("*")
-      .eq("session_id", session.id)
-      .order("sequence_no", { ascending: true });
-    setSessionMessages(data ?? []);
-    setLoadingMessages(false);
-  }, [supabase]);
+  }, []);
 
   const closeSession = useCallback(() => {
     setSelectedSession(null);
-    setSessionMessages([]);
   }, []);
 
   const handleReanalyze = useCallback(async () => {
@@ -660,42 +648,42 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
 
       {/* Navbar */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-[#090c13]/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <a href="/home" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600">
-              <BrainCircuit className="h-5 w-5 text-white" />
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
+          <a href="/home" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
+              <BrainCircuit className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold">
+            <span className="text-sm font-bold">
               AI <span className="text-indigo-400">Interviewer</span>
             </span>
           </a>
-          <div className="flex items-center gap-2">
-            <a href="/home" className="flex items-center gap-2 rounded-xl px-4 py-2 text-base text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-              <Home className="h-4 w-4" /> Home
+          <div className="flex items-center gap-1">
+            <a href="/home" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
+              <Home className="h-3.5 w-3.5" /> Home
             </a>
-            <a href="/profile" className="flex items-center gap-2 rounded-xl px-4 py-2 text-base text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-              <UserIcon className="h-4 w-4" /> Profile
+            <a href="/profile" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
+              <UserIcon className="h-3.5 w-3.5" /> Profile
             </a>
-            <a href="/home" className="ml-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-base font-bold text-white shadow-lg shadow-indigo-600/30 hover:brightness-110 transition-all">
+            <a href="/home" className="ml-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 hover:brightness-110 transition-all">
               + New Interview
             </a>
           </div>
         </div>
       </nav>
 
-      <main className="relative pt-24 pb-20 px-6">
-        <div className="mx-auto max-w-6xl">
+      <main className="relative pt-20 pb-16 px-5">
+        <div className="mx-auto max-w-5xl">
 
           {/* Page header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-black text-white mb-2">
-              {profile?.full_name ? `Welcome back, ${profile.full_name.split(" ")[0]}` : "Your Dashboard"}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-white mb-1">
+              {profile?.full_name ? `Welcome back, ${profile.full_name.split(" ")[0]}` : "Dashboard"}
             </h1>
-            <p className="text-lg text-slate-400">Track your progress and review past interview sessions</p>
+            <p className="text-sm text-slate-400">Track your progress and review past sessions</p>
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-8">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-6">
             <StatCard icon={Award}        label="Total Sessions"   value={stats?.total_sessions ?? 0}           color="#6366f1" />
             <StatCard icon={CheckCircle2} label="Completed"        value={stats?.completed_sessions ?? 0}       color="#22c55e" />
             <StatCard icon={Star}         label="Avg Score"        value={stats?.avg_overall_score ? Math.round(stats.avg_overall_score) : "—"} color="#f59e0b" />
@@ -703,37 +691,37 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
           </div>
 
           {/* Two column layout */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-2">
 
             {/* Left: Latest Score & Performance */}
-            <div className="space-y-6">
+            <div className="space-y-5">
 
               {/* Score overview card */}
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-6">
-                <h2 className="text-lg font-bold text-white mb-5">Latest Performance</h2>
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-5">
+                <h2 className="text-sm font-bold text-white mb-4">Latest Performance</h2>
 
-                <div className="flex items-center gap-6 mb-6">
-                  <ScoreRing score={overallScore} size={90} />
+                <div className="flex items-center gap-5 mb-5">
+                  <ScoreRing score={overallScore} size={72} />
                   <div>
-                    <p className="text-5xl font-black text-white leading-none">{overallScore}</p>
-                    <p className="text-base text-slate-400 mt-1">out of 100</p>
-                    <p className="text-lg font-semibold mt-2" style={{ color: scoreColor(overallScore) }}>
+                    <p className="text-4xl font-bold text-white leading-none">{overallScore}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">out of 100</p>
+                    <p className="text-sm font-semibold mt-1" style={{ color: scoreColor(overallScore) }}>
                       {scoreLabel(overallScore)}
                     </p>
                   </div>
                   {scoreDiff != null && (
-                    <span className={`ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold ${
+                    <span className={`ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
                       scoreDiff >= 0 ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
                                      : "bg-red-500/15 text-red-400 border border-red-500/25"
                     }`}>
-                      {scoreDiff >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                      {scoreDiff >= 0 ? "+" : ""}{scoreDiff} from last
+                      {scoreDiff >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {scoreDiff >= 0 ? "+" : ""}{scoreDiff}
                     </span>
                   )}
                 </div>
 
                 {/* Performance bars */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <AnimatedBar label="Technical"       value={latest?.technical_score}       colour="#6366f1" icon={Monitor}       delay={0} />
                   <AnimatedBar label="Communication"   value={latest?.communication_score}   colour="#22c55e" icon={MessagesSquare} delay={80} />
                   <AnimatedBar label="Confidence"      value={latest?.confidence_score}      colour="#f59e0b" icon={Shield}         delay={160} />
@@ -741,24 +729,24 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
                 </div>
 
                 {!latest && (
-                  <p className="text-base text-slate-500 text-center py-8">Complete an interview to see your scores</p>
+                  <p className="text-sm text-slate-500 text-center py-6">Complete an interview to see your scores</p>
                 )}
               </div>
 
               {/* Focus areas */}
               {latest?.action_items && latest.action_items.length > 0 && (
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20">
-                      <Target className="h-5 w-5 text-violet-400" />
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/20">
+                      <Target className="h-4 w-4 text-violet-400" />
                     </div>
-                    <h2 className="text-lg font-bold text-white">Focus Areas</h2>
+                    <h2 className="text-sm font-bold text-white">Focus Areas</h2>
                   </div>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {latest.action_items.slice(0, 3).map((item, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/25 text-sm font-bold text-violet-400 shrink-0">{i + 1}</span>
-                        <span className="text-base text-slate-300">{item}</span>
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/25 text-[10px] font-bold text-violet-400 shrink-0">{i + 1}</span>
+                        <span className="text-xs text-slate-300">{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -767,29 +755,29 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
             </div>
 
             {/* Right: Past Sessions */}
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20">
-                    <Calendar className="h-5 w-5 text-indigo-400" />
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
+                    <Calendar className="h-4 w-4 text-indigo-400" />
                   </div>
-                  <h2 className="text-lg font-bold text-white">Past Sessions</h2>
+                  <h2 className="text-sm font-bold text-white">Past Sessions</h2>
                 </div>
-                <span className="text-base text-slate-500 bg-white/[0.05] border border-white/8 rounded-full px-3 py-1">
+                <span className="text-xs text-slate-500 bg-white/[0.05] border border-white/8 rounded-full px-2 py-0.5">
                   {recentSessions.length} total
                 </span>
               </div>
 
               {recentSessions.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/15 py-16 text-center">
-                  <MessageSquare className="mx-auto mb-4 h-12 w-12 text-slate-600" />
-                  <p className="text-lg text-slate-400 mb-4">No sessions yet</p>
-                  <a href="/home" className="inline-flex items-center gap-2 text-base font-medium text-indigo-400 hover:text-indigo-300">
-                    Start your first interview <ChevronRight className="h-4 w-4" />
+                <div className="rounded-xl border border-dashed border-white/15 py-12 text-center">
+                  <MessageSquare className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+                  <p className="text-sm text-slate-400 mb-3">No sessions yet</p>
+                  <a href="/home" className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300">
+                    Start your first interview <ChevronRight className="h-3 w-3" />
                   </a>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                   {recentSessions.map((s) => (
                     <SessionCard
                       key={s.id}
@@ -812,23 +800,12 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
         <SessionDetailDrawer
           session={selectedSession}
           analysis={localAnalyses.find(a => a.session_id === selectedSession.id) ?? null}
-          messages={loadingMessages ? [] : sessionMessages}
           profile={profile}
           onClose={closeSession}
           interviewerAvatars={interviewerAvatars}
           onReanalyze={handleReanalyze}
           isReanalyzing={isReanalyzing}
         />
-      )}
-
-      {/* Loading overlay */}
-      {loadingMessages && selectedSession && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
-          <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-[#0c0f18]/95 px-8 py-5 shadow-2xl">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-            <span className="text-base font-medium text-slate-300">Loading conversation...</span>
-          </div>
-        </div>
       )}
     </div>
   );
