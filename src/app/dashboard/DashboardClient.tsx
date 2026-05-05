@@ -107,6 +107,41 @@ const CATEGORY_COLORS: Record<string, string> = {
   General: "#ec4899",
 };
 
+/* ─── User Avatar with fallback ─────────────────────────── */
+
+function UserAvatar({ src, name, size = 24, className = "" }: {
+  src: string | null;
+  name: string;
+  size?: number;
+  className?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+  if (!src || imgError) {
+    return (
+      <div
+        className={`flex items-center justify-center rounded-full bg-emerald-500/25 text-emerald-400 font-bold shrink-0 ${className}`}
+        style={{ width: size, height: size, fontSize: size * 0.4 }}
+      >
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      width={size}
+      height={size}
+      className={`rounded-full object-cover border border-emerald-500/40 shrink-0 ${className}`}
+      style={{ width: size, height: size }}
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
 /* ─── Animated Performance Bar ─────────────────────────── */
 
 function AnimatedBar({ label, value, colour, icon: Icon, delay = 0 }: {
@@ -364,14 +399,7 @@ function SessionDetailDrawer({ session, analysis, profile, onClose, interviewerA
                               </div>
                             )
                           ) : (
-                            userAvatar ? (
-                              <Image src={userAvatar} alt={userName} width={24} height={24}
-                                className="h-6 w-6 rounded-full object-cover border border-emerald-500/40 shrink-0" />
-                            ) : (
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/25 text-[10px] font-bold text-emerald-400 shrink-0">
-                                {userInitials}
-                              </div>
-                            )
+                            <UserAvatar src={userAvatar} name={userName} size={24} />
                           )}
                           <span className={`text-xs font-semibold ${isBot ? "text-indigo-400" : "text-emerald-400"}`}>
                             {isBot ? (session.interviewers?.name ?? "Interviewer") : userName}
