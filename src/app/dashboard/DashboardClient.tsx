@@ -229,7 +229,14 @@ function SessionDetailDrawer({ session, analysis, profile, onClose, interviewerA
 
   const userName = profile?.full_name ?? "You";
   const userInitials = userName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const userAvatar = profile?.avatar_url ?? null;
+
+  // Handle avatar URL - could be full URL, storage path, or null
+  const rawAvatar = profile?.avatar_url;
+  const userAvatar = rawAvatar
+    ? rawAvatar.startsWith("http")
+      ? rawAvatar
+      : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${rawAvatar}`
+    : null;
 
   return (
     <>
