@@ -144,11 +144,18 @@ async function startMicCapture(
   onAudioChunk: (base64pcm: string) => void
 ): Promise<{ stop: () => void }> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true },
+    audio: {
+      sampleRate: 16000,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true // Better mobile audio quality
+    },
   });
   const audioCtx = new AudioContext({ sampleRate: 16000 });
   const source = audioCtx.createMediaStreamSource(stream);
-  const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+  // Increased buffer size for mobile stability (8192 instead of 4096)
+  const processor = audioCtx.createScriptProcessor(8192, 1, 1);
   processor.onaudioprocess = (e) => {
     const float32 = e.inputBuffer.getChannelData(0);
     const int16 = new Int16Array(float32.length);
@@ -173,136 +180,62 @@ async function startMicCapture(
   };
 }
 
-/* ═══════════════════════════ AI Orb Component ═══════════════════════ */
+/* ═══════════════════════════ AI Logo Component ═══════════════════════ */
 
-function AIOrb({ state, name }: { state: AIState; name: string }) {
-  const ringVariants = {
-    idle: { scale: 1, opacity: 0.15 },
-    listening: { scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] },
-    thinking: { scale: [1, 1.08, 1], opacity: [0.15, 0.3, 0.15] },
-    speaking: { scale: [1, 1.25, 1.1, 1.3, 1], opacity: [0.2, 0.5, 0.3, 0.6, 0.2] },
-  };
-
-  const coreVariants = {
-    idle: { scale: 1 },
-    listening: { scale: [1, 1.05, 1] },
-    thinking: { scale: [1, 0.95, 1.02, 0.98, 1], rotate: [0, 5, -5, 3, 0] },
-    speaking: { scale: [1, 1.08, 0.98, 1.05, 1] },
-  };
-
-  const glowColor = {
-    idle: "rgba(99, 102, 241, 0.3)",
-    listening: "rgba(239, 68, 68, 0.5)",
-    thinking: "rgba(168, 85, 247, 0.4)",
-    speaking: "rgba(99, 102, 241, 0.6)",
+function AILogo({ state, name }: { state: AIState; name: string }) {
+  const bgColor = {
+    idle: "from-indigo-500 to-violet-600",
+    listening: "from-red-500 to-red-600",
+    thinking: "from-violet-500 to-purple-600",
+    speaking: "from-indigo-500 to-violet-600",
   };
 
   const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
 
   return (
-    <div className="relative flex items-center justify-center" style={{ perspective: "800px" }}>
-      {/* Outer glow pulse */}
+    <div className="relative flex flex-col items-center justify-center">
+      {/* Simple logo with subtle animation */}
       <motion.div
-        className="absolute rounded-full"
-        style={{ width: 320, height: 320, background: `radial-gradient(circle, ${glowColor[state]} 0%, transparent 70%)` }}
-        animate={{ scale: state === "idle" ? 1 : [1, 1.3, 1], opacity: state === "idle" ? 0.3 : [0.3, 0.6, 0.3] }}
-        transition={{ duration: state === "speaking" ? 0.8 : 2, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      {/* Ring 3 — outermost */}
-      <motion.div
-        className="absolute rounded-full border border-indigo-500/20"
-        style={{ width: 260, height: 260, rotateX: "60deg", transformStyle: "preserve-3d" }}
-        animate={ringVariants[state]}
-        transition={{ duration: state === "speaking" ? 0.6 : 2.5, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      {/* Ring 2 */}
-      <motion.div
-        className="absolute rounded-full border-2 border-violet-500/25"
-        style={{ width: 220, height: 220, rotateX: "45deg", rotateZ: "45deg", transformStyle: "preserve-3d" }}
+        className={`relative z-10 flex items-center justify-center rounded-full bg-gradient-to-br ${bgColor[state]} shadow-2xl`}
+        style={{ width: 120, height: 120 }}
         animate={{
-          ...ringVariants[state],
-          rotateZ: state === "idle" ? [45, 405] : [45, 225, 405],
+          scale: state === "speaking" ? [1, 1.05, 1] : 1,
+          boxShadow: state === "speaking"
+            ? ["0 20px 60px rgba(99, 102, 241, 0.4)", "0 20px 80px rgba(99, 102, 241, 0.6)", "0 20px 60px rgba(99, 102, 241, 0.4)"]
+            : "0 20px 60px rgba(99, 102, 241, 0.3)"
         }}
-        transition={{ duration: state === "speaking" ? 1.5 : 8, repeat: Infinity, ease: "linear" }}
-      />
-
-      {/* Ring 1 — inner orbit */}
-      <motion.div
-        className="absolute rounded-full border-2 border-indigo-400/30"
-        style={{ width: 180, height: 180, rotateX: "70deg", rotateZ: "-30deg", transformStyle: "preserve-3d" }}
-        animate={{
-          ...ringVariants[state],
-          rotateZ: state === "idle" ? [-30, -390] : [-30, -210, -390],
-        }}
-        transition={{ duration: state === "speaking" ? 2 : 6, repeat: Infinity, ease: "linear" }}
-      />
-
-      {/* Orbiting particle dots */}
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute h-1.5 w-1.5 rounded-full bg-indigo-400"
-          style={{ transformStyle: "preserve-3d" }}
-          animate={{
-            x: [
-              Math.cos((i * Math.PI) / 3) * 100,
-              Math.cos((i * Math.PI) / 3 + Math.PI) * 100,
-              Math.cos((i * Math.PI) / 3 + Math.PI * 2) * 100,
-            ],
-            y: [
-              Math.sin((i * Math.PI) / 3) * 100 * 0.4,
-              Math.sin((i * Math.PI) / 3 + Math.PI) * 100 * 0.4,
-              Math.sin((i * Math.PI) / 3 + Math.PI * 2) * 100 * 0.4,
-            ],
-            opacity: state === "idle" ? [0.2, 0.5, 0.2] : [0.4, 1, 0.4],
-            scale: state === "speaking" ? [1, 2, 1] : [1, 1.3, 1],
-          }}
-          transition={{
-            duration: state === "speaking" ? 2 : 4,
-            repeat: Infinity,
-            ease: "linear",
-            delay: i * 0.3,
-          }}
-        />
-      ))}
-
-      {/* Core orb — the AI "face" */}
-      <motion.div
-        className="relative z-10 flex items-center justify-center rounded-full"
-        style={{
-          width: 130,
-          height: 130,
-          background: "radial-gradient(circle at 35% 35%, #818cf8, #6366f1 40%, #4338ca 70%, #312e81 100%)",
-          boxShadow: `0 0 60px ${glowColor[state]}, inset 0 -8px 20px rgba(0,0,0,0.3), inset 0 4px 12px rgba(255,255,255,0.1)`,
-          transformStyle: "preserve-3d",
-        }}
-        animate={coreVariants[state]}
-        transition={{ duration: state === "speaking" ? 0.5 : 2, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 0.8, repeat: state === "speaking" ? Infinity : 0, ease: "easeInOut" }}
       >
-        {/* Specular highlight — glass-like */}
-        <div
-          className="absolute rounded-full"
-          style={{
-            width: 80,
-            height: 40,
-            top: 15,
-            left: 18,
-            background: "radial-gradient(ellipse at center, rgba(255,255,255,0.25) 0%, transparent 70%)",
-          }}
-        />
         {/* Initials */}
-        <span className="text-3xl font-bold text-white/90 drop-shadow-lg select-none" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
+        <span className="text-4xl font-bold text-white select-none">
           {initials}
         </span>
       </motion.div>
 
+      {/* State indicator ring - subtle */}
+      {state !== "idle" && (
+        <motion.div
+          className="absolute rounded-full border-2"
+          style={{
+            width: 140,
+            height: 140,
+            borderColor: state === "listening" ? "rgba(239, 68, 68, 0.3)" :
+                         state === "thinking" ? "rgba(168, 85, 247, 0.3)" :
+                         "rgba(99, 102, 241, 0.3)"
+          }}
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
+
       {/* State label */}
       <motion.div
-        className="absolute -bottom-12 flex items-center gap-2"
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="absolute -bottom-10 flex items-center gap-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         key={state}
       >
         {state === "listening" && (
@@ -334,27 +267,28 @@ function AIOrb({ state, name }: { state: AIState; name: string }) {
 /* ═══════════════════ Voice Visualizer Bars ═══════════════════════════ */
 
 function VoiceVisualizer({ active, color = "indigo" }: { active: boolean; color?: string }) {
-  const barCount = 24;
+  // Reduced bar count for mobile performance
+  const barCount = 12;
   const colorMap: Record<string, string> = {
     indigo: "bg-indigo-400",
     red: "bg-red-400",
     violet: "bg-violet-400",
   };
   return (
-    <div className="flex items-center justify-center gap-[3px] h-8">
+    <div className="flex items-center justify-center gap-1 h-8">
       {Array.from({ length: barCount }).map((_, i) => (
         <motion.div
           key={i}
-          className={`w-[3px] rounded-full ${active ? colorMap[color] : "bg-slate-700"}`}
+          className={`w-1 rounded-full ${active ? colorMap[color] : "bg-slate-700"}`}
           animate={active ? {
-            height: [4, Math.random() * 28 + 4, 4],
-            opacity: [0.4, 1, 0.4],
-          } : { height: 4, opacity: 0.2 }}
+            height: [6, Math.random() * 20 + 8, 6],
+            opacity: [0.5, 1, 0.5],
+          } : { height: 6, opacity: 0.3 }}
           transition={{
-            duration: active ? 0.4 + Math.random() * 0.3 : 0.5,
+            duration: active ? 0.6 + Math.random() * 0.2 : 0.5,
             repeat: active ? Infinity : 0,
             ease: "easeInOut",
-            delay: i * 0.02,
+            delay: i * 0.03,
           }}
         />
       ))}
@@ -723,19 +657,10 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
 
   return (
     <div className="relative flex h-screen flex-col overflow-hidden bg-[#060912] text-white">
-      {/* Ambient background */}
+      {/* Simplified ambient background for mobile performance */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/[0.07] blur-[120px]" />
-        <div className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-violet-600/[0.05] blur-[100px]" />
-        <div className="absolute left-1/4 bottom-1/3 h-[300px] w-[300px] rounded-full bg-blue-600/[0.04] blur-[80px]" />
-        {/* Grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
+        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/[0.05] blur-[80px]" />
+        <div className="absolute right-1/4 bottom-1/4 h-[300px] w-[300px] rounded-full bg-violet-600/[0.03] blur-[60px]" />
       </div>
 
       {/* ─── Header ─── */}
@@ -809,7 +734,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="flex flex-col items-center"
         >
-          <AIOrb state={aiState} name={interviewer?.name ?? "AI"} />
+          <AILogo state={aiState} name={interviewer?.name ?? "AI"} />
 
           {/* Voice visualizer */}
           <motion.div
@@ -860,11 +785,11 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
         <AnimatePresence>
           {chatOpen && (
             <motion.div
-              initial={{ x: 400, opacity: 0 }}
+              initial={{ x: "100%", opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 400, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="absolute right-0 top-0 bottom-0 z-30 flex w-full max-w-md flex-col border-l border-white/5 bg-[#0a0e1a]/90 backdrop-blur-2xl"
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute right-0 top-0 bottom-0 z-30 flex w-full max-w-md flex-col border-l border-white/5 bg-[#0a0e1a]/95 backdrop-blur-sm"
             >
               {/* Chat header */}
               <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
@@ -876,12 +801,12 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                {messages.map((msg, idx) => (
+                {messages.map((msg) => (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.02 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
                     className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
                   >
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${
