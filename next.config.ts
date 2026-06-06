@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  outputFileTracingRoot: '/home/ubuntu/AI_interviewer',
 };
 
 export default nextConfig;

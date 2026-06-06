@@ -464,64 +464,59 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
       try {
         setConnectionStatus("connecting");
 
-        // 1. Fetch ephemeral token
-        console.log("[Gemini] Fetching ephemeral token...");
-        const tokenRes = await fetch("/api/interview/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: session.id }),
-        });
-
-        if (!tokenRes.ok) {
-          const errorBody = await tokenRes.text();
-          console.error("[Gemini] Token fetch failed:", tokenRes.status, errorBody);
-          throw new Error(`Token fetch failed: ${tokenRes.status}`);
-        }
-
-        const { token } = await tokenRes.json();
-        console.log("[Gemini] Token received:", token ? `${token.slice(0, 30)}...` : "EMPTY");
-        if (!token) throw new Error("Empty token received");
+        // 1. Initialize Gemini client with API key (client-side for demo)
+        // Note: For production, use a server-side proxy to keep API key secure
+        console.log("[Gemini] Initializing Gemini Live API...");
         if (cancelled) return;
 
-        // 2. Create Gemini client with v1alpha for ephemeral tokens
         const { GoogleGenAI, Modality } = await import("@google/genai");
 
         const modelName = process.env.NEXT_PUBLIC_GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview";
+        const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+        if (!apiKey) {
+          throw new Error("Gemini API key not configured");
+        }
+
         console.log("[Gemini] Connecting to model:", modelName);
 
         const ai = new GoogleGenAI({
-          apiKey: token,
-          httpOptions: { apiVersion: "v1alpha" },
+          apiKey,
         });
 
-        // 3. Connect to Gemini Live
+        // 3. Connect to Gemini Live API with SDK v2.x (callbacks required)
         const liveSession = await ai.live.connect({
           model: modelName,
           config: {
             responseModalities: [Modality.AUDIO],
-            systemInstruction: systemInstruction(),
+            systemInstruction: { parts: [{ text: systemInstruction() }] },
             speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
             },
-            outputAudioTranscription: {},
-            inputAudioTranscription: {},
           },
           callbacks: {
-            onopen: () => {
+            onopen: async () => {
               console.log("[Gemini] WebSocket OPEN");
-              if (!cancelled) setConnectionStatus("connected");
+              if (!cancelled) {
+                setConnectionStatus("connected");
+                // Auto-enable microphone when connected
+                setTimeout(() => {
+                  if (!cancelled && !recording && sessionRef.current) {
+                    toggleMic();
+                  }
+                }, 1000); // Wait 1 second after connection
+              }
             },
-            onmessage: (msg: import("@google/genai").LiveServerMessage) => {
-              console.log("[Gemini] Message received:", JSON.stringify(msg).slice(0, 200));
+            onmessage: (msg) => {
+              console.log("[Gemini] Content received:", JSON.stringify(msg).slice(0, 200));
               if (!cancelled) handleServerMessage(msg);
             },
-            onerror: (e: ErrorEvent) => {
+            onerror: (e) => {
               console.error("[Gemini] WebSocket ERROR:", e);
-              console.error("[Gemini] Error details — message:", e.message, "type:", e.type);
               if (!cancelled) setConnectionStatus("error");
             },
-            onclose: (e: CloseEvent) => {
-              console.log("[Gemini] WebSocket CLOSED — code:", e.code, "reason:", e.reason, "wasClean:", e.wasClean);
+            onclose: (e) => {
+              console.log("[Gemini] WebSocket CLOSED:", e);
               if (!cancelled) setConnectionStatus("disconnected");
             },
           },
@@ -531,13 +526,12 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
         if (cancelled) { liveSession.close(); return; }
         sessionRef.current = liveSession;
 
-        // 4. Send opening prompt via sendRealtimeInput (Gemini 3.1 only supports
-        // sendClientContent for initial history seeding, not mid-conversation)
+        // 4. Send opening prompt
         liveSession.sendRealtimeInput({
           text: "The interview is starting now. Please greet me and ask me to introduce myself.",
         });
         setAIState("thinking");
-        console.log("[Gemini] Opening prompt sent via sendRealtimeInput");
+        console.log("[Gemini] Opening prompt sent");
 
       } catch (err) {
         console.error("[Gemini] Connection failed:", err);
@@ -548,17 +542,21 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
     connect();
     return () => {
       cancelled = true;
-      sessionRef.current?.close();
+      sessionRef.current?.close(); // SDK v2.x uses close()
       sessionRef.current = null;
       playerRef.current.close();
     };
   }, [ended]);
 
-  // ── Handle incoming Gemini messages ──
-  function handleServerMessage(message: import("@google/genai").LiveServerMessage) {
+  // ── Handle incoming Gemini messages (SDK v2.x) ──
+  function handleServerMessage(message: any) {
+    // SDK v2.x uses serverContent structure
+    console.log("[Gemini] Message received:", JSON.stringify(message).slice(0, 300));
+
     const sc = message.serverContent;
     if (!sc) return;
 
+    // Handle audio data from model response
     if (sc.modelTurn?.parts) {
       for (const part of sc.modelTurn.parts) {
         if (part.inlineData?.data) {
@@ -567,10 +565,12 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
       }
     }
 
+    // Handle transcription of model output
     if (sc.outputTranscription?.text) {
       pendingTextRef.current += sc.outputTranscription.text;
     }
 
+    // Handle turn completion
     if (sc.turnComplete) {
       const text = pendingTextRef.current.trim();
       if (text) {
@@ -583,6 +583,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
       // aiState will be set to "idle" by AudioPlayer.onStateChange when audio finishes
     }
 
+    // Handle interruption
     if (sc.interrupted) {
       playerRef.current.stop();
       const text = pendingTextRef.current.trim();
@@ -596,6 +597,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
       setAIState("idle");
     }
 
+    // Handle input transcription (user speech to text)
     if (sc.inputTranscription?.text) {
       const transcribed = sc.inputTranscription.text.trim();
       if (transcribed) {
@@ -640,7 +642,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
     setAIState("thinking");
     await saveMessage("user", text);
     playerRef.current.stop();
-    // Gemini 3.1: must use sendRealtimeInput for text (sendClientContent is initial-history only)
+    // Send text message
     sessionRef.current.sendRealtimeInput({ text });
   }
 
@@ -667,6 +669,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
         setLoading(true);
         playerRef.current.stop();
         const mic = await startMicCapture((base64pcm) => {
+          // Send audio in realtime
           sessionRef.current?.sendRealtimeInput({
             audio: { data: base64pcm, mimeType: "audio/pcm;rate=16000" },
           });
@@ -694,7 +697,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
   async function handleEndSession() {
     setEnding(true);
     micRef.current?.stop(); micRef.current = null; setRecording(false);
-    sessionRef.current?.close(); sessionRef.current = null;
+    sessionRef.current?.close(); sessionRef.current = null; // SDK v2.x uses close()
     playerRef.current.stop();
     setConnectionStatus("disconnected");
     setAIState("idle");

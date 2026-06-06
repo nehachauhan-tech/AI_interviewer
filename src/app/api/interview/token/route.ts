@@ -55,14 +55,11 @@ export async function POST(request: Request) {
 
     console.log("[Token] Creating ephemeral token...");
 
+    // SDK v2.x uses authTokens.create with expireTime
     const token = await client.authTokens.create({
       config: {
         uses: 1,
         expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        newSessionExpireTime: new Date(
-          Date.now() + 2 * 60 * 1000
-        ).toISOString(),
-        httpOptions: { apiVersion: "v1alpha" },
       },
     });
 
