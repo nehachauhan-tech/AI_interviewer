@@ -253,48 +253,55 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
 
       {/* ── Topic Selection Popup ─────────────────────────────────── */}
       {showPopup && selectedInterviewer && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70"
             onClick={() => { setShowPopup(false); setError(null); }}
           />
 
-          {/* Modal */}
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl shadow-black/50 overflow-hidden">
+          {/* Modal - Mobile: slide up from bottom, Desktop: centered */}
+          <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-2xl border-t sm:border border-white/10 bg-[#0d1117] shadow-2xl overflow-hidden max-h-[90vh] sm:max-h-[85vh] flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:fade-in duration-300 sm:duration-200">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-xs font-bold text-white overflow-hidden`}>
-                  {selectedInterviewer.avatar_url ? (
-                    <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
-                  ) : (
-                    initials
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{selectedInterviewer.name}</p>
-                  <p className="text-xs text-slate-500">{selectedInterviewer.title}</p>
-                </div>
+            <div className="flex-shrink-0 border-b border-white/5 px-4 py-3 sm:px-5 sm:py-4">
+              {/* Mobile drag indicator */}
+              <div className="sm:hidden flex justify-center mb-2">
+                <div className="w-10 h-1 rounded-full bg-slate-600" />
               </div>
-              <button
-                onClick={() => { setShowPopup(false); setError(null); }}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-xs font-bold text-white overflow-hidden`}>
+                    {selectedInterviewer.avatar_url ? (
+                      <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{selectedInterviewer.name}</p>
+                    <p className="text-xs text-slate-500">{selectedInterviewer.title}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowPopup(false); setError(null); }}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 active:bg-white/10 active:text-white transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Body */}
-            <div className="p-5 space-y-4">
+            {/* Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:p-5 space-y-4">
               <h3 className="flex items-center gap-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
                 <Target className="h-3.5 w-3.5" />
                 Choose a Topic
               </h3>
 
               {/* Topic list */}
-              <div className="max-h-60 overflow-y-auto rounded-xl border border-white/5 bg-white/[0.02]">
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
                 {Object.entries(groupedTopics).map(([category, catTopics]) => (
                   <div key={category}>
                     <div className={`sticky top-0 z-10 px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase bg-[#0d1117] border-b border-white/5 ${CATEGORY_COLOURS[category] ?? "text-slate-500"}`}>
@@ -304,12 +311,12 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                       <button
                         key={t.id}
                         onClick={() => setSelectedTopic(t)}
-                        className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-white/5 ${
+                        className={`flex w-full items-center justify-between px-4 py-3 text-sm active:bg-white/10 transition-colors touch-manipulation ${
                           selectedTopic?.id === t.id ? "bg-indigo-500/10 text-indigo-300" : "text-slate-300"
                         }`}
                       >
-                        <span>{t.name}</span>
-                        {selectedTopic?.id === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
+                        <span className="text-left">{t.name}</span>
+                        {selectedTopic?.id === t.id && <CheckCircle2 className="h-4 w-4 text-indigo-400 flex-shrink-0 ml-2" />}
                       </button>
                     ))}
                   </div>
@@ -347,12 +354,14 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                   {error}
                 </div>
               )}
+            </div>
 
-              {/* Start button */}
+            {/* Fixed bottom button */}
+            <div className="flex-shrink-0 border-t border-white/5 p-4 sm:px-5 sm:py-4 bg-[#0d1117]">
               <button
                 onClick={handleStartInterview}
                 disabled={!selectedTopic || starting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-indigo-600/30 transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-indigo-600/30 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
               >
                 {starting ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Starting…</>
