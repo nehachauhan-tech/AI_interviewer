@@ -191,14 +191,14 @@ function AnimatedBar({ label, value, colour, icon: Icon, delay = 0 }: {
 
 /* ─── Score Ring ─────────────────────────────────────────── */
 
-function ScoreRing({ score, size = 48 }: { score: number | null | undefined; size?: number }) {
+function ScoreRing({ score, size = 48, className = "" }: { score: number | null | undefined; size?: number; className?: string }) {
   const r = size * 0.38;
   const circ = 2 * Math.PI * r;
   const val = score ?? 0;
   const color = scoreColor(score);
 
   return (
-    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+    <div className={`relative flex items-center justify-center shrink-0 ${className}`} style={{ width: size, height: size }}>
       <svg className="-rotate-90 absolute inset-0" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
         <circle
@@ -218,13 +218,13 @@ function StatCard({ icon: Icon, label, value, color }: {
   icon: React.ElementType; label: string; value: string | number; color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 hover:border-white/12 hover:bg-white/[0.06] transition-all">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0" style={{ background: `${color}20` }}>
-        <Icon className="h-5 w-5" style={{ color }} />
+    <div className="flex items-center gap-2 sm:gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 sm:px-4 py-3 transition-all touch-manipulation">
+      <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg shrink-0" style={{ background: `${color}20` }}>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color }} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-400 mb-0.5">{label}</p>
-        <p className="text-xl font-bold text-white leading-none">{value}</p>
+        <p className="text-[10px] sm:text-xs font-medium text-slate-400 mb-0.5 truncate">{label}</p>
+        <p className="text-lg sm:text-xl font-bold text-white leading-none">{value}</p>
       </div>
     </div>
   );
@@ -681,66 +681,68 @@ export default function DashboardClient({ user, profile, stats, recentSessions, 
         <div className="absolute -bottom-40 -left-32 h-[450px] w-[450px] rounded-full bg-indigo-600/8 blur-[110px]" />
       </div>
 
-      {/* Navbar */}
+      {/* Navbar - Mobile Responsive */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06] bg-[#090c13]/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-5">
           <a href="/home" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
               <BrainCircuit className="h-4 w-4 text-white" />
             </div>
-            <span className="text-sm font-bold">
+            <span className="text-sm font-bold hidden xs:inline">
               AI <span className="text-indigo-400">Interviewer</span>
             </span>
           </a>
-          <div className="flex items-center gap-1">
-            <a href="/home" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-              <Home className="h-3.5 w-3.5" /> Home
+          <div className="flex items-center gap-1 sm:gap-2">
+            <a href="/home" className="flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 active:bg-white/10 sm:hover:bg-white/5 sm:hover:text-white transition-colors touch-manipulation">
+              <Home className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Home</span>
             </a>
-            <a href="/profile" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-              <UserIcon className="h-3.5 w-3.5" /> Profile
+            <a href="/profile" className="flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 active:bg-white/10 sm:hover:bg-white/5 sm:hover:text-white transition-colors touch-manipulation">
+              <UserIcon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Profile</span>
             </a>
-            <a href="/home" className="ml-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 hover:brightness-110 transition-all">
-              + New Interview
+            <a href="/home" className="ml-1 sm:ml-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 active:scale-95 sm:hover:brightness-110 transition-all touch-manipulation">
+              <span className="hidden sm:inline">+ New Interview</span>
+              <span className="sm:hidden">+</span>
             </a>
           </div>
         </div>
       </nav>
 
-      <main className="relative pt-20 pb-16 px-5">
+      <main className="relative pt-20 pb-16 px-4 sm:px-5">
         <div className="mx-auto max-w-5xl">
 
           {/* Page header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white mb-1">
+          <div className="mb-5 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">
               {profile?.full_name ? `Welcome back, ${profile.full_name.split(" ")[0]}` : "Dashboard"}
             </h1>
-            <p className="text-sm text-slate-400">Track your progress and review past sessions</p>
+            <p className="text-xs sm:text-sm text-slate-400">Track your progress and review past sessions</p>
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-6">
+          {/* Stats row - Mobile Responsive */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 mb-5 sm:mb-6">
             <StatCard icon={Award}        label="Total Sessions"   value={stats?.total_sessions ?? 0}           color="#6366f1" />
             <StatCard icon={CheckCircle2} label="Completed"        value={stats?.completed_sessions ?? 0}       color="#22c55e" />
             <StatCard icon={Star}         label="Avg Score"        value={stats?.avg_overall_score ? Math.round(stats.avg_overall_score) : "—"} color="#f59e0b" />
             <StatCard icon={Clock}        label="Practice Time"    value={totalMins > 0 ? `${totalMins}m` : "—"} color="#ec4899" />
           </div>
 
-          {/* Two column layout */}
-          <div className="grid gap-5 lg:grid-cols-2">
+          {/* Two column layout - Mobile Responsive */}
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
 
             {/* Left: Latest Score & Performance */}
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
 
-              {/* Score overview card */}
-              <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-5">
-                <h2 className="text-sm font-bold text-white mb-4">Latest Performance</h2>
+              {/* Score overview card - Mobile Responsive */}
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-4 sm:p-5">
+                <h2 className="text-xs sm:text-sm font-bold text-white mb-3 sm:mb-4">Latest Performance</h2>
 
-                <div className="flex items-center gap-5 mb-5">
-                  <ScoreRing score={overallScore} size={72} />
+                <div className="flex items-center gap-3 sm:gap-5 mb-4 sm:mb-5">
+                  <ScoreRing score={overallScore} size={60} className="sm:hidden" />
+                  <ScoreRing score={overallScore} size={72} className="hidden sm:block" />
                   <div>
-                    <p className="text-4xl font-bold text-white leading-none">{overallScore}</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-white leading-none">{overallScore}</p>
                     <p className="text-xs text-slate-400 mt-0.5">out of 100</p>
-                    <p className="text-sm font-semibold mt-1" style={{ color: scoreColor(overallScore) }}>
+                    <p className="text-xs sm:text-sm font-semibold mt-1" style={{ color: scoreColor(overallScore) }}>
                       {scoreLabel(overallScore)}
                     </p>
                   </div>
