@@ -668,21 +668,21 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative z-20 flex items-center justify-between border-b border-white/5 px-5 py-3 backdrop-blur-xl bg-[#060912]/60"
+        className="relative z-20 flex items-center justify-between border-b border-white/5 px-3 sm:px-5 py-2.5 sm:py-3 bg-[#060912]/80"
       >
-        <div className="flex items-center gap-4">
-          <a href="/home" className="flex items-center gap-1.5 text-slate-500 hover:text-white transition-colors text-sm">
-            <ChevronLeft className="h-4 w-4" /> Back
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <a href="/home" className="flex items-center gap-1 text-slate-500 active:text-white transition-colors text-xs sm:text-sm touch-manipulation shrink-0">
+            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back</span>
           </a>
-          <div className="h-4 w-px bg-white/10" />
-          <div>
-            <p className="text-sm font-bold leading-tight">{interviewer?.name}</p>
-            <p className="text-xs text-slate-500">{topic?.name}</p>
+          <div className="h-4 w-px bg-white/10 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm font-bold leading-tight truncate">{interviewer?.name}</p>
+            <p className="text-[10px] sm:text-xs text-slate-500 truncate">{topic?.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Connection status */}
-          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider ${
             connectionStatus === "connected" ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" :
             connectionStatus === "connecting" ? "text-amber-400 border-amber-500/20 bg-amber-500/10" :
             "text-red-400 border-red-500/20 bg-red-500/10"
@@ -691,18 +691,18 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
               connectionStatus === "connected" ? "bg-emerald-400" :
               connectionStatus === "connecting" ? "bg-amber-400 animate-pulse" : "bg-red-400"
             }`} />
-            {connectionStatus === "connected" ? "Live" : connectionStatus === "connecting" ? "Connecting" : "Offline"}
+            <span className="hidden sm:inline">{connectionStatus === "connected" ? "Live" : connectionStatus === "connecting" ? "Connecting" : "Offline"}</span>
           </span>
 
-          <button onClick={toggleMute} className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${
-            muted ? "border-red-500/30 bg-red-500/10 text-red-400" : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+          <button onClick={toggleMute} className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all touch-manipulation ${
+            muted ? "border-red-500/30 bg-red-500/10 text-red-400" : "border-white/10 bg-white/5 text-slate-400 active:text-white"
           }`}>
             {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
           </button>
 
           {/* Chat toggle */}
-          <button onClick={() => setChatOpen(!chatOpen)} className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${
-            chatOpen ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400" : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+          <button onClick={() => setChatOpen(!chatOpen)} className={`relative flex h-8 w-8 items-center justify-center rounded-lg border transition-all touch-manipulation ${
+            chatOpen ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400" : "border-white/10 bg-white/5 text-slate-400 active:text-white"
           }`}>
             <MessageSquare className="h-3.5 w-3.5" />
             {messages.length > 0 && (
@@ -716,7 +716,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
             <button
               onClick={handleEndSession}
               disabled={ending}
-              className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-60"
+              className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-semibold text-red-400 active:bg-red-500/20 transition-all disabled:opacity-60 touch-manipulation"
             >
               {ending ? <Loader2 className="h-3 w-3 animate-spin" /> : <StopCircle className="h-3 w-3" />}
               End
@@ -781,7 +781,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
           </AnimatePresence>
         </motion.div>
 
-        {/* ─── Chat Panel (slide-in) ─── */}
+        {/* ─── Chat Panel (full-screen on mobile, side panel on desktop) ─── */}
         <AnimatePresence>
           {chatOpen && (
             <motion.div
@@ -789,7 +789,7 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "100%", opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute right-0 top-0 bottom-0 z-30 flex w-full max-w-md flex-col border-l border-white/5 bg-[#0a0e1a]/95 backdrop-blur-sm"
+              className="fixed inset-0 z-30 flex flex-col bg-[#0a0e1a] sm:absolute sm:inset-auto sm:right-0 sm:top-0 sm:bottom-0 sm:w-full sm:max-w-md sm:border-l sm:border-white/5 sm:bg-[#0a0e1a]/95"
             >
               {/* Chat header */}
               <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
@@ -865,9 +865,9 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-          className="relative z-20 border-t border-white/5 bg-[#060912]/60 px-4 py-5 backdrop-blur-xl"
+          className="relative z-20 border-t border-white/5 bg-[#060912]/80 px-4 py-4 sm:py-5 pb-safe"
         >
-          <div className="mx-auto flex max-w-md items-center justify-center gap-5">
+          <div className="mx-auto flex max-w-md items-center justify-center gap-4 sm:gap-5">
             {/* Mute */}
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -925,8 +925,8 @@ Begin by greeting the candidate and asking them to introduce themselves.`;
             </motion.button>
           </div>
 
-          <p className="mt-3 text-center text-[10px] text-slate-700 tracking-wide uppercase">
-            {recording ? "Tap mic to stop" : "Tap mic to speak or open chat to type"}
+          <p className="mt-2 sm:mt-3 text-center text-[10px] text-slate-700 tracking-wide uppercase">
+            {recording ? "Tap to stop" : "Tap mic to speak"}
           </p>
         </motion.div>
       )}

@@ -121,65 +121,57 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
   return (
     <div className="min-h-screen bg-[#060912] text-white overflow-x-hidden">
 
-      {/* Background */}
+      {/* Background - simplified for mobile performance */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] h-[700px] w-[700px] rounded-full bg-indigo-600/10 blur-[150px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-violet-600/10 blur-[130px]" />
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px)",
-            backgroundSize: "50px 50px",
-          }}
-        />
+        <div className="absolute top-[-20%] left-[-10%] h-[400px] w-[400px] sm:h-[700px] sm:w-[700px] rounded-full bg-indigo-600/8 blur-[100px] sm:blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] h-[350px] w-[350px] sm:h-[600px] sm:w-[600px] rounded-full bg-violet-600/8 blur-[80px] sm:blur-[130px]" />
       </div>
 
-      {/* Navbar */}
+      {/* Navbar - Mobile Responsive */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#060912]/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <a href="/" className="flex items-center gap-2.5">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+          <a href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-600/20">
               <BrainCircuit className="h-4 w-4 text-white" />
             </div>
-            <span className="text-base font-bold">
+            <span className="text-sm sm:text-base font-bold">
               AI <span className="text-indigo-400">Interviewer</span>
             </span>
           </a>
-          <div className="flex items-center gap-2">
-            <a href="/dashboard" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-              <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
+          <div className="flex items-center gap-1 sm:gap-2">
+            <a href="/dashboard" className="flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 active:bg-white/10 sm:hover:bg-white/5 sm:hover:text-white transition-colors touch-manipulation">
+              <LayoutDashboard className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Dashboard</span>
             </a>
-            <a href="/profile" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
-              <UserIcon className="h-3.5 w-3.5" /> Profile
+            <a href="/profile" className="flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 active:bg-white/10 sm:hover:bg-white/5 sm:hover:text-white transition-colors touch-manipulation">
+              <UserIcon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Profile</span>
             </a>
-            <button onClick={handleLogout} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors" aria-label="Sign out">
+            <button onClick={handleLogout} className="flex items-center gap-1 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-slate-400 active:bg-red-500/10 active:text-red-400 sm:hover:bg-red-500/10 sm:hover:text-red-400 transition-colors touch-manipulation" aria-label="Sign out">
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       </nav>
 
-      <main className="relative pt-20 pb-16">
-        <div className="mx-auto max-w-7xl px-6">
+      <main className="relative pt-16 sm:pt-20 pb-12 sm:pb-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
 
           {/* Welcome */}
-          <div className="mb-6 text-center">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5">
+          <div className="mb-5 sm:mb-6 text-center">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 sm:px-4 py-1.5">
               <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Ready to practice?</span>
+              <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-indigo-400 uppercase">Ready to practice?</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Hey, {displayName} 👋</h1>
-            <p className="mt-1.5 text-sm text-slate-400">
-              Select an interviewer below, then choose your topic to start.
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">Hey, {displayName} 👋</h1>
+            <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-slate-400">
+              Select an interviewer below, then choose your topic.
             </p>
           </div>
         </div>
 
-        {/* ── Carousel — full-width section with overflow visible ── */}
+        {/* ── Carousel — full-width section ── */}
         {carouselSlides.length > 0 && (
-          <div className="mb-8">
-            <p className="mb-3 text-center text-[10px] font-bold tracking-widest text-slate-600 uppercase flex items-center justify-center gap-2">
+          <div className="mb-6 sm:mb-8">
+            <p className="mb-2 sm:mb-3 text-center text-[10px] font-bold tracking-widest text-slate-600 uppercase flex items-center justify-center gap-2">
               <Users className="h-3 w-3" /> Choose your interviewer
             </p>
             <Carousel
@@ -191,13 +183,13 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
         )}
 
         {/* ── Selected interviewer detail + Select button ─────────── */}
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           {selectedInterviewer && (
             <div className="mx-auto max-w-xl">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-5 space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3 sm:space-y-4">
                 {/* Header row */}
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-lg font-black text-white overflow-hidden shadow-lg`}>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className={`flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br ${gradient} text-base sm:text-lg font-black text-white overflow-hidden shadow-lg`}>
                     {selectedInterviewer.avatar_url ? (
                       <img src={selectedInterviewer.avatar_url} alt={selectedInterviewer.name} className="h-full w-full object-cover" />
                     ) : (
@@ -205,17 +197,17 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-white">{selectedInterviewer.name}</h3>
-                    <p className="text-sm text-slate-400">{selectedInterviewer.title}</p>
+                    <h3 className="text-base sm:text-lg font-bold text-white truncate">{selectedInterviewer.name}</h3>
+                    <p className="text-xs sm:text-sm text-slate-400 truncate">{selectedInterviewer.title}</p>
                     {selectedInterviewer.company && (
                       <div className="mt-0.5 flex items-center gap-1">
                         <Briefcase className="h-3 w-3 text-slate-600" />
-                        <span className="text-xs text-slate-500">{selectedInterviewer.company}</span>
+                        <span className="text-[10px] sm:text-xs text-slate-500">{selectedInterviewer.company}</span>
                       </div>
                     )}
                   </div>
                   {selectedInterviewer.personality && (
-                    <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${personalityStyle}`}>
+                    <span className={`shrink-0 rounded-full border px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold ${personalityStyle}`}>
                       {selectedInterviewer.personality}
                     </span>
                   )}
@@ -223,14 +215,14 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
 
                 {/* Bio */}
                 {selectedInterviewer.bio && (
-                  <p className="text-sm leading-relaxed text-slate-400">{selectedInterviewer.bio}</p>
+                  <p className="text-xs sm:text-sm leading-relaxed text-slate-400">{selectedInterviewer.bio}</p>
                 )}
 
                 {/* Specialties */}
                 {selectedInterviewer.specialties?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5">
                     {selectedInterviewer.specialties.map((s) => (
-                      <span key={s} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-slate-300">
+                      <span key={s} className="rounded-full border border-white/10 bg-white/5 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs text-slate-300">
                         {s}
                       </span>
                     ))}
@@ -240,7 +232,7 @@ export default function HomeClient({ user, profile, interviewers, topics }: Prop
                 {/* Select button */}
                 <button
                   onClick={handleSelectInterviewer}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/25 transition-all hover:brightness-110"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/25 active:scale-[0.98] transition-all sm:hover:brightness-110 touch-manipulation"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   Select {selectedInterviewer.name}
